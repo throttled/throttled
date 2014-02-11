@@ -23,6 +23,13 @@ func TestDelayer(t *testing.T) {
 		10: {PerMin(5), 12 * time.Second},
 		11: {PerMin(10), 6 * time.Second},
 		12: {PerMin(60), time.Second},
+		13: {PerHour(1), time.Hour},
+		14: {PerHour(2), 30 * time.Minute},
+		15: {PerHour(4), 15 * time.Minute},
+		16: {PerHour(60), time.Minute},
+		17: {PerHour(120), 30 * time.Second},
+		18: {Delay(time.Second), time.Second},
+		19: {Delay(5 * time.Minute), 5 * time.Minute},
 	}
 	for i, c := range cases {
 		got := c.in.Delay()
