@@ -46,7 +46,7 @@ func (t *Throttle) FuncDropped(fn func(), droppedfn func()) func() {
 
 func (t *Throttle) Handler(h http.Handler) http.Handler {
 	return t.HandlerDropped(h, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Throttled", http.StatusServiceUnavailable)
+		http.Error(w, "Request limit exceeded", http.StatusServiceUnavailable)
 	}))
 }
 
