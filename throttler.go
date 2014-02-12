@@ -52,6 +52,7 @@ func (t *Throttler) Throttle(h http.Handler) http.Handler {
 	})
 }
 
+// TODO : Close is broken. limiter.process may never see the closed semaphore.
 func (t *Throttler) Close() {
 	// Make sure no new calls get through
 	close(t.stop)

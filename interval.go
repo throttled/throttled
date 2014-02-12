@@ -2,6 +2,7 @@ package throttled
 
 import (
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -11,6 +12,7 @@ type intervalLimiter struct {
 	delay  time.Duration
 	bursts int
 
+	lock   sync.RWMutex
 	stop   <-chan struct{}
 	bucket chan chan bool
 	ended  chan struct{}
@@ -42,6 +44,9 @@ func (il *intervalLimiter) Request(w http.ResponseWriter, r *http.Request) (<-ch
 		ch <- false
 		return ch, nil
 	}
+	// Mutex required to avoid races with close(bucket) in il.process
+	il.lock.RLock()
+	defer il.lock.RUnlock()
 	select {
 	case il.bucket <- ch:
 		return ch, nil
@@ -61,21 +66,23 @@ func (il *intervalLimiter) stopped() bool {
 }
 
 func (il *intervalLimiter) process() {
-	var after <-chan time.Time
-	for v := range il.bucket {
-		if after != nil {
+	after := time.After(0)
+forever:
+	for {
+		select {
+		case <-il.stop:
+			break forever
+		case v := <-il.bucket:
 			<-after
+			// Let the request go through
+			v <- true
+			// Wait the required duration
+			after = time.After(il.delay)
 		}
-		// Let the request go through
-		v <- true
-		// Check if we should stop
-		if il.stopped() {
-			break
-		}
-		// Wait the required duration
-		after = time.After(il.delay)
 	}
 	// Drain remaining buckets
+	il.lock.Lock()
+	defer il.lock.Unlock()
 	close(il.bucket)
 	for v := range il.bucket {
 		v <- false

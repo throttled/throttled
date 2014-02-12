@@ -73,6 +73,7 @@ func TestInterval(t *testing.T) {
 			}
 			// Wait for the requests to complete
 			time.Sleep(100*time.Millisecond + (c.rate.Delay() * time.Duration(c.handlers)))
+			th.Close()
 			st.Lock()
 			defer st.Unlock()
 			// Test that the number of OK calls are within min and max
