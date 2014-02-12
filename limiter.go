@@ -1,12 +1,8 @@
 package throttled
 
-type Limiter interface {
-	Start()
-	Stop()
-	Request() <-chan bool
-}
+import "net/http"
 
-type intervalLimiter struct {
-	bucket chan chan bool
-	stop   chan struct{}
+type Limiter interface {
+	Start(<-chan struct{}) <-chan struct{}
+	Request(http.ResponseWriter, *http.Request) (<-chan bool, error)
 }
