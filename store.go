@@ -6,5 +6,5 @@ var DefaultStore Store
 
 type Store interface {
 	Get(string) (int, error)
-	Set(string, int) error
+	Incr(string, int) error
 }
