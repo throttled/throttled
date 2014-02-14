@@ -45,7 +45,6 @@ func runTest(th *Throttler, calls int, wait time.Duration, body func()) (*stats,
 	th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 	hn := th.Throttle(st)
 	resps := runTestHandler(hn, calls, wait)
-	th.Close()
 	return st, resps
 }
 

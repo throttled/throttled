@@ -11,13 +11,13 @@ import (
 func TestMemStatsGC(t *testing.T) {
 	var ms runtime.MemStats
 	// Configure the throttler
-	ith := Interval(PerSec(5), 10)
+	ith := Interval(PerSec(5), 10, nil)
 	st := &stats{body: func() {
 		runtime.GC()
 	}}
 	runtime.ReadMemStats(&ms)
 	thresholds := &runtime.MemStats{NumGC: ms.NumGC + 2}
-	th := MemStats(thresholds, 0, 10)
+	th := MemStats(thresholds, 0)
 	// Use interval to control calls one after another
 	h := ith.Throttle(th.Throttle(st))
 	runTestHandler(h, 5, time.Second)
@@ -32,7 +32,7 @@ func TestMemStatsAlloc(t *testing.T) {
 	var ms runtime.MemStats
 	var escape *[]byte
 	// Configure the throttler
-	ith := Interval(PerSec(100), 1000)
+	ith := Interval(PerSec(100), 1000, nil)
 	st := &stats{body: func() {
 		var mem runtime.MemStats
 		runtime.ReadMemStats(&mem)
@@ -43,7 +43,7 @@ func TestMemStatsAlloc(t *testing.T) {
 	}}
 	runtime.ReadMemStats(&ms)
 	thresholds := &runtime.MemStats{TotalAlloc: ms.TotalAlloc + 300000}
-	th := MemStats(thresholds, 100*time.Millisecond, 100)
+	th := MemStats(thresholds, 100*time.Millisecond)
 	th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 	h := ith.Throttle(th.Throttle(st))
 	runTestHandler(h, 100, 5*time.Second)
@@ -56,6 +56,7 @@ func TestMemStatsAlloc(t *testing.T) {
 		t.Errorf("TotalAlloc: expected %d dropped, got %d", 100-ok, dropped)
 	}
 }
+
 func BenchmarkReadMemStats(b *testing.B) {
 	var mem runtime.MemStats
 	for i := 0; i < b.N; i++ {

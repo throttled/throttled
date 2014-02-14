@@ -15,76 +15,46 @@ type memStatsLimiter struct {
 
 	lockStats sync.RWMutex
 	stats     runtime.MemStats
-
-	lockBucket sync.RWMutex
-	stop       <-chan struct{}
-	bucket     chan chan bool
-	ended      chan struct{}
 }
 
-func MemStats(thresholds *runtime.MemStats, refreshRate time.Duration, buffer int) *Throttler {
+func MemStats(thresholds *runtime.MemStats, refreshRate time.Duration) *Throttler {
 	return &Throttler{
 		limiter: &memStatsLimiter{
 			thresholds:  thresholds,
 			refreshRate: refreshRate,
-			bucket:      make(chan chan bool, buffer),
 		},
 	}
 }
 
-func (m *memStatsLimiter) Start(stop <-chan struct{}) <-chan struct{} {
-	m.stop = stop
-	m.ended = make(chan struct{})
+func (m *memStatsLimiter) Start() {
 	// Make sure there is an initial MemStats reading
 	runtime.ReadMemStats(&m.stats)
 	if m.refreshRate > 0 {
 		go m.refresh()
 	}
-	go m.process()
-	return m.ended
 }
 
 func (m *memStatsLimiter) refresh() {
-forever:
-	for {
-		select {
-		case <-m.stop:
-			break forever
-		case <-time.After(m.refreshRate):
-			m.lockStats.Lock()
-			runtime.ReadMemStats(&m.stats)
-			m.lockStats.Unlock()
-		}
+	c := time.Tick(m.refreshRate)
+	for _ = range c {
+		m.lockStats.Lock()
+		runtime.ReadMemStats(&m.stats)
+		m.lockStats.Unlock()
 	}
 }
 
 func (m *memStatsLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
 	ch := make(chan bool, 1)
-	if m.stopped() {
-		ch <- false
-		return ch, nil
-	}
 	// Check if memory thresholds are reached
-	if !m.allow() {
-		ch <- false
-		return ch, nil
-	}
-	m.lockBucket.RLock()
-	defer m.lockBucket.RUnlock()
-	select {
-	case m.bucket <- ch:
-		return ch, nil
-	default:
-		ch <- false
-		return ch, nil
-	}
+	ch <- m.allow()
+	return ch, nil
 }
 
 func (m *memStatsLimiter) allow() bool {
 	m.lockStats.RLock()
-	defer m.lockStats.RUnlock()
-	// If refreshRate == 0, then read on every request.
 	mem := m.stats
+	m.lockStats.RUnlock()
+	// If refreshRate == 0, then read on every request.
 	if m.refreshRate == 0 {
 		runtime.ReadMemStats(&mem)
 	}
@@ -126,35 +96,4 @@ func checkStat(threshold, actual uint64, ok *bool) {
 			*ok = false
 		}
 	}
-}
-
-func (m *memStatsLimiter) stopped() bool {
-	select {
-	case <-m.stop:
-		return true
-	default:
-		return false
-	}
-}
-
-func (m *memStatsLimiter) process() {
-forever:
-	for {
-		select {
-		case <-m.stop:
-			break forever
-		case v := <-m.bucket:
-			// Let the request go through
-			v <- true
-		}
-	}
-	// Drain remaining buckets
-	m.lockBucket.Lock()
-	defer m.lockBucket.Unlock()
-	close(m.bucket)
-	for v := range m.bucket {
-		v <- false
-	}
-	// Notify the end of the process goroutine
-	close(m.ended)
 }

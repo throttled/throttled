@@ -25,10 +25,6 @@ type Throttler struct {
 	ErrorHandler http.Handler
 
 	limiter Limiter
-	wg      sync.WaitGroup
-	stop    chan struct{}
-	end     <-chan struct{}
-
 	mu      sync.Mutex
 	started bool
 }
@@ -36,8 +32,6 @@ type Throttler struct {
 func (t *Throttler) Throttle(h http.Handler) http.Handler {
 	droph, errh := t.start()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.wg.Add(1)
-		defer t.wg.Done()
 		ch, err := t.limiter.Request(w, r)
 		if err != nil {
 			errh.ServeHTTP(w, r)
@@ -52,15 +46,6 @@ func (t *Throttler) Throttle(h http.Handler) http.Handler {
 	})
 }
 
-func (t *Throttler) Close() {
-	// Make sure no new calls get through
-	close(t.stop)
-	// Wait for end signal of t.limiter
-	<-t.end
-	// Wait for goroutines to complete
-	t.wg.Wait()
-}
-
 func (t *Throttler) start() (http.Handler, http.Handler) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -73,8 +58,7 @@ func (t *Throttler) start() (http.Handler, http.Handler) {
 		err = DefaultErrorHandler
 	}
 	if !t.started {
-		t.stop = make(chan struct{})
-		t.end = t.limiter.Start(t.stop)
+		t.limiter.Start()
 		t.started = true
 	}
 	return drop, err

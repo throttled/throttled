@@ -14,6 +14,7 @@ type VaryBy struct {
 	Params     []string
 	Cookies    []string
 	Separator  string
+	MaxKeys    int
 }
 
 func (vb *VaryBy) Key(r *http.Request) string {

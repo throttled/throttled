@@ -22,7 +22,7 @@ func TestInterval(t *testing.T) {
 	}
 	for i, c := range cases {
 		// Configure the throttler
-		th := Interval(c.rate, c.bursts)
+		th := Interval(c.rate, c.bursts, nil)
 		// Run the tests
 		st, resps := runTest(th, c.handlers, 100*time.Millisecond+(c.rate.Delay()*time.Duration(c.handlers)), nil)
 		// Assert the results
@@ -64,7 +64,7 @@ func TestInterval(t *testing.T) {
 // TODO : Because of the random nature of the select when multiple cases are available,
 // very hard to write a test that checks how many will be dropped.
 func TestIntervalClose(t *testing.T) {
-	t.Skip("unreliable test")
+	//t.Skip("unreliable test")
 	cases := []struct {
 		rate     Delayer
 		bursts   int
@@ -76,7 +76,7 @@ func TestIntervalClose(t *testing.T) {
 		0: {PerSec(1), 5, 10, 200 * time.Millisecond, 8, 9},
 	}
 	for i, c := range cases {
-		th := Interval(c.rate, c.bursts)
+		th := Interval(c.rate, c.bursts, nil)
 		// Run the tests
 		st, _ := runTest(th, c.handlers, c.wait, nil)
 		// Assert the results
