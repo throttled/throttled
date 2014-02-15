@@ -15,6 +15,17 @@ var (
 	})
 )
 
+type Limiter interface {
+	Start()
+	Request(http.ResponseWriter, *http.Request) (<-chan bool, error)
+}
+
+func Custom(l Limiter) *Throttler {
+	return &Throttler{
+		limiter: l,
+	}
+}
+
 type Throttler struct {
 	// DroppedHandler is called if the request is disallowed. If it is nil,
 	// the DefaultDroppedHandler variable is used.

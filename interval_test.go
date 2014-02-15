@@ -1,88 +1,65 @@
 package throttled
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/PuerkitoBio/boom/commands"
 )
+
+func runTest(h http.Handler, b commands.Boom) *commands.Report {
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	b.Req.Url = srv.URL
+	return b.Run()
+}
 
 func TestInterval(t *testing.T) {
 	cases := []struct {
-		rate     Delayer
-		bursts   int
-		handlers int
-		min      int
-		max      int
+		n      int
+		c      int
+		rps    int
+		bursts int
 	}{
-		0: {PerSec(50), 3, 6, 3, 5},
-		1: {PerSec(20), 0, 1, 1, 1},
-		2: {PerSec(30), 0, 3, 1, 2},
-		3: {PerSec(4), 2, 6, 2, 4},
-		4: {PerSec(0), 0, 6, 1, 6},
-		5: {PerSec(0), 10, 6, 6, 6},
+		0: {60, 10, 20, 100},
 	}
 	for i, c := range cases {
-		// Configure the throttler
-		th := Interval(c.rate, c.bursts, nil)
-		// Run the tests
-		st, resps := runTest(th, c.handlers, 100*time.Millisecond+(c.rate.Delay()*time.Duration(c.handlers)), nil)
-		// Assert the results
-		ok, dropped, ts := st.Stats()
-		// Test that the number of OK calls are within min and max
-		if ok < c.min || ok > c.max {
-			t.Errorf("%d: expected between %d and %d calls, got %d", i, c.min, c.max, ok)
+		// Setup the stats handler
+		st := &stats{}
+		// Create the throttler
+		th := Interval(PerSec(c.rps), c.bursts, nil)
+		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
+		b := commands.Boom{
+			Req: &commands.ReqOpts{},
+			N:   c.n,
+			C:   c.c,
 		}
-		// The number of dropped calls should balance
-		if expdrop := (c.handlers - ok); dropped != expdrop {
-			t.Errorf("%d: expected %d dropped, got %d", i, expdrop, dropped)
+		// Run the test
+		rpt := runTest(th.Throttle(st), b)
+		// Assert results
+		wigglef := 0.1 * float64(c.rps)
+		if rpt.RPS < float64(c.rps)-wigglef || rpt.RPS > float64(c.rps)+wigglef {
+			t.Errorf("%d: expected RPS to be around %d, got %f", i, c.rps, rpt.RPS)
 		}
-		// Test that the timestamps are separated by the rate's delay
+		ok, ko, ts := st.Stats()
+		if ok != rpt.StatusCodeDist[200] {
+			t.Errorf("%d: expected %d status 200, got %d", i, rpt.StatusCodeDist[200], ok)
+		}
+		if ko != rpt.StatusCodeDist[503] {
+			t.Errorf("%d: expected %d status 503, got %d", i, rpt.StatusCodeDist[503], ok)
+		}
+		if len(rpt.StatusCodeDist) > 2 {
+			t.Errorf("%d: expected at most 2 different status codes, got %d", i, len(rpt.StatusCodeDist))
+		}
+		interval := PerSec(c.rps).Delay()
+		wiggled := time.Duration(0.1 * float64(interval))
 		for j := 0; j < len(ts)-1; j++ {
-			if (ts[j+1].Sub(ts[j]) < c.rate.Delay()) || (ts[j+1].Sub(ts[j]) > c.rate.Delay()+50*time.Millisecond) {
-				t.Errorf("%d: expected calls to be %s apart", i, c.rate.Delay())
+			gap := ts[j+1].Sub(ts[j])
+			if gap < interval-wiggled || gap > interval+wiggled {
+				t.Errorf("%d: expected timestamps to be within %s, got %s", i, interval, gap)
 			}
-		}
-		// Test that the right status codes have been received
-		twos, fives := 0, 0
-		for j := 0; j < len(resps); j++ {
-			if resps[j].StatusCode == 200 {
-				twos++
-			} else if resps[j].StatusCode == 503 {
-				fives++
-			} else {
-				t.Errorf("%d: unexpected status code: %d", i, resps[j].StatusCode)
-			}
-		}
-		if twos != st.ok {
-			t.Errorf("%d: expected %d status 200, got %d", i, ok, twos)
-		}
-		if fives != (c.handlers - st.ok) {
-			t.Errorf("%d: expected %d status 503, got %d", i, c.handlers-ok, fives)
-		}
-	}
-}
-
-// TODO : Because of the random nature of the select when multiple cases are available,
-// very hard to write a test that checks how many will be dropped.
-func TestIntervalClose(t *testing.T) {
-	//t.Skip("unreliable test")
-	cases := []struct {
-		rate     Delayer
-		bursts   int
-		handlers int
-		wait     time.Duration
-		min      int
-		max      int
-	}{
-		0: {PerSec(1), 5, 10, 200 * time.Millisecond, 8, 9},
-	}
-	for i, c := range cases {
-		th := Interval(c.rate, c.bursts, nil)
-		// Run the tests
-		st, _ := runTest(th, c.handlers, c.wait, nil)
-		// Assert the results
-		_, dropped, _ := st.Stats()
-		if dropped < c.min || dropped > c.max {
-			t.Errorf("%d: expected between %d and %d dropped calls, got %d", i, c.min, c.max, dropped)
 		}
 	}
 }
