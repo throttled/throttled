@@ -31,11 +31,35 @@ func TestDelayer(t *testing.T) {
 		18: {Delay(time.Second), time.Second},
 		19: {Delay(5 * time.Minute), 5 * time.Minute},
 		20: {PerSec(200), 5 * time.Millisecond},
+		21: {PerDay(24), time.Hour},
 	}
 	for i, c := range cases {
 		got := c.in.Delay()
 		if got != c.out {
 			t.Errorf("%d: expected %s, got %s", i, c.out, got)
+		}
+	}
+}
+
+func TestQuota(t *testing.T) {
+	cases := []struct {
+		q    Quota
+		reqs int
+		win  time.Duration
+	}{
+		0: {PerSec(10), 10, time.Second},
+		1: {PerMin(30), 30, time.Minute},
+		2: {PerHour(124), 124, time.Hour},
+		3: {PerDay(1), 1, 24 * time.Hour},
+		4: {CustomQuota{148, 17 * time.Second}, 148, 17 * time.Second},
+	}
+	for i, c := range cases {
+		r, w := c.q.Quota()
+		if r != c.reqs {
+			t.Errorf("%d: expected %d requests, got %d", i, c.reqs, r)
+		}
+		if w != c.win {
+			t.Errorf("%d: expected %s window, got %s", i, c.win, w)
 		}
 	}
 }

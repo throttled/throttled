@@ -2,3 +2,6 @@
 *.swp
 *.swo
 *.test
+examples/interval/interval
+examples/interval-vary/interval-vary
+examples/memstats/memstats

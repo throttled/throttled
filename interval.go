@@ -8,9 +8,55 @@ import (
 	"github.com/golang/groupcache/lru"
 )
 
+func Interval(delay Delayer, bursts int, vary *VaryBy) *Throttler {
+	var l Limiter
+	if vary != nil {
+		l = &intervalVaryByLimiter{
+			delay:  delay.Delay(),
+			bursts: bursts,
+			vary:   vary,
+		}
+	} else {
+		l = &intervalLimiter{
+			delay:  delay.Delay(),
+			bursts: bursts,
+		}
+	}
+	return &Throttler{
+		limiter: l,
+	}
+}
+
+var _ Limiter = (*intervalVaryByLimiter)(nil)
 var _ Limiter = (*intervalLimiter)(nil)
 
 type intervalLimiter struct {
+	delay  time.Duration
+	bursts int
+
+	bucket chan chan bool
+}
+
+func (il *intervalLimiter) Start() {
+	if il.bursts < 0 {
+		il.bursts = 0
+	}
+	il.bucket = make(chan chan bool, il.bursts)
+	go process(il.bucket, il.delay)
+}
+
+func (il *intervalLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
+	ch := make(chan bool, 1)
+	select {
+	case il.bucket <- ch:
+		return ch, nil
+	default:
+		ch <- false
+		return ch, nil
+	}
+}
+
+type intervalVaryByLimiter struct {
 	delay  time.Duration
 	bursts int
 	vary   *VaryBy
@@ -19,17 +65,7 @@ type intervalLimiter struct {
 	keys *lru.Cache
 }
 
-func Interval(delay Delayer, bursts int, vary *VaryBy) *Throttler {
-	return &Throttler{
-		limiter: &intervalLimiter{
-			delay:  delay.Delay(),
-			bursts: bursts,
-			vary:   vary,
-		},
-	}
-}
-
-func (il *intervalLimiter) Start() {
+func (il *intervalVaryByLimiter) Start() {
 	if il.bursts < 0 {
 		il.bursts = 0
 	}
@@ -42,7 +78,7 @@ func (il *intervalLimiter) Start() {
 	il.keys.OnEvicted = il.stopProcess
 }
 
-func (il *intervalLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
+func (il *intervalVaryByLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
 	ch := make(chan bool, 1)
 	key := il.vary.Key(r)
 
@@ -57,7 +93,7 @@ func (il *intervalLimiter) Request(w http.ResponseWriter, r *http.Request) (<-ch
 		bucket := make(chan chan bool, il.bursts)
 		il.keys.Add(key, bucket)
 		// Start the goroutine to process this bucket
-		go il.process(bucket)
+		go process(bucket, il.delay)
 		item = bucket
 		// Release the write lock, acquire the read lock
 		il.lock.Unlock()
@@ -74,17 +110,17 @@ func (il *intervalLimiter) Request(w http.ResponseWriter, r *http.Request) (<-ch
 	}
 }
 
-func (il *intervalLimiter) process(bucket chan chan bool) {
+func process(bucket chan chan bool, delay time.Duration) {
 	after := time.After(0)
 	for v := range bucket {
 		<-after
 		// Let the request go through
 		v <- true
 		// Wait the required duration
-		after = time.After(il.delay)
+		after = time.After(delay)
 	}
 }
 
-func (il *intervalLimiter) stopProcess(key lru.Key, value interface{}) {
+func (il *intervalVaryByLimiter) stopProcess(key lru.Key, value interface{}) {
 	close(value.(chan chan bool))
 }
