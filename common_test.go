@@ -2,8 +2,11 @@ package throttled
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"time"
+
+	"github.com/PuerkitoBio/boom/commands"
 )
 
 type stats struct {
@@ -37,4 +40,11 @@ func (s *stats) Stats() (int, int, []time.Time) {
 	s.Lock()
 	defer s.Unlock()
 	return s.ok, s.dropped, s.ts
+}
+
+func runTest(h http.Handler, b commands.Boom) *commands.Report {
+	srv := httptest.NewServer(h)
+	defer srv.Close()
+	b.Req.Url = srv.URL
+	return b.Run()
 }
