@@ -1,10 +1,12 @@
 package throttled
 
-// TODO : API to be determined, what to store, how to increment atomically, etc.
+import "time"
 
 var DefaultStore Store
 
+// TODO : API to be determined, what to store, how to increment atomically, etc.
 type Store interface {
-	Get(string) (int, error)
-	Incr(string, int) error
+	Init(reqs int, window time.Duration)
+	Get(string) (int, int, error)
+	Incr(string) error
 }

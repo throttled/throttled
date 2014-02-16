@@ -1,6 +1,7 @@
 package throttled
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -42,9 +43,23 @@ func (s *stats) Stats() (int, int, []time.Time) {
 	return s.ok, s.dropped, s.ts
 }
 
-func runTest(h http.Handler, b commands.Boom) *commands.Report {
+func runTest(h http.Handler, b ...commands.Boom) []*commands.Report {
 	srv := httptest.NewServer(h)
 	defer srv.Close()
-	b.Req.Url = srv.URL
-	return b.Run()
+
+	var rpts []*commands.Report
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	wg.Add(len(b))
+	for i, bo := range b {
+		bo.Req.Url = srv.URL + fmt.Sprintf("/%d", i)
+		go func() {
+			mu.Lock()
+			defer mu.Unlock()
+			rpts = append(rpts, bo.Run())
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	return rpts
 }
