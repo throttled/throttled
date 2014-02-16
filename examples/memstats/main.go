@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -65,7 +66,16 @@ func main() {
 			wait := time.Duration(rand.Intn(int(*delayRes)))
 			time.Sleep(wait)
 		}
-		w.WriteHeader(200)
+		// Read the whole file in memory, to actually use 64Kb (instead of streaming to w)
+		b, err := ioutil.ReadFile("test-file")
+		if err != nil {
+			throttled.OnError(w, r, err)
+			return
+		}
+		_, err = w.Write(b)
+		if err != nil {
+			throttled.OnError(w, r, err)
+		}
 		mu.Lock()
 		defer mu.Unlock()
 		ok++
