@@ -91,7 +91,7 @@ func assertStats(t *testing.T, ix int, st *stats, rpts []*commands.Report) {
 	var twos, fives, max int
 	for _, rpt := range rpts {
 		twos += rpt.StatusCodeDist[200]
-		fives += rpt.StatusCodeDist[503]
+		fives += rpt.StatusCodeDist[droppedStatus]
 		if len(rpt.StatusCodeDist) > max {
 			max = len(rpt.StatusCodeDist)
 		}
@@ -100,7 +100,7 @@ func assertStats(t *testing.T, ix int, st *stats, rpts []*commands.Report) {
 		t.Errorf("%d: expected %d status 200, got %d", ix, twos, ok)
 	}
 	if ko != fives {
-		t.Errorf("%d: expected %d status 503, got %d", ix, fives, ok)
+		t.Errorf("%d: expected %d status 429, got %d", ix, fives, ok)
 	}
 	if max > 2 {
 		t.Errorf("%d: expected at most 2 different status codes, got %d", ix, max)

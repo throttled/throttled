@@ -8,6 +8,37 @@ import (
 	"time"
 )
 
+const droppedStatus = 429
+
+// Simple memory store for tests, unsafe for concurrent access
+type mapStore struct {
+	cnt map[string]int
+	ts  map[string]time.Time
+}
+
+func newMapStore() *mapStore {
+	return &mapStore{
+		make(map[string]int),
+		make(map[string]time.Time),
+	}
+}
+func (ms *mapStore) Incr(key string) (int, error) {
+	ms.cnt[key]++
+	return ms.cnt[key], nil
+}
+func (ms *mapStore) Reset(key string, win time.Duration) error {
+	ms.cnt[key] = 1
+	ms.ts[key] = time.Now().UTC()
+	return nil
+}
+func (ms *mapStore) GetTs(key string) (int, time.Time, error) {
+	cnt, ok := ms.cnt[key]
+	if !ok {
+		return 0, time.Time{}, ErrNoSuchKey
+	}
+	return cnt, ms.ts[key], nil
+}
+
 func TestRateLimit(t *testing.T) {
 	quota := CustomQuota{5, 5 * time.Second}
 	cases := []struct {
@@ -18,12 +49,12 @@ func TestRateLimit(t *testing.T) {
 		2: {5, 2, 4, 200},
 		3: {5, 1, 3, 200},
 		4: {5, 0, 3, 200},
-		5: {5, 0, 2, 503},
+		5: {5, 0, 2, droppedStatus},
 	}
 	// Limit the requests to 2 per second
 	th := Interval(PerSec(2), 0, nil)
 	// Rate limit
-	rl := RateLimit(quota, nil, NewMemStore())
+	rl := RateLimit(quota, nil, newMapStore())
 	// Create the stats
 	st := &stats{}
 	// Create the handler
@@ -62,5 +93,12 @@ func callRateLimited(t *testing.T, i, limit, remain, reset, status int, url stri
 	vi, _ := strconv.Atoi(v)
 	if vi < reset-1 || vi > reset+1 {
 		t.Errorf("%d: expected reset header to be close to %d, got %d", i, reset, vi)
+	}
+	if status == droppedStatus {
+		v := res.Header.Get("Retry-After")
+		vi, _ := strconv.Atoi(v)
+		if vi < reset-1 || vi > reset+1 {
+			t.Errorf("%d: expected retry after header to be close to %d, got %d", i, reset, vi)
+		}
 	}
 }

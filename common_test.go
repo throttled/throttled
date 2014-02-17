@@ -34,7 +34,7 @@ func (s *stats) DroppedHTTP(w http.ResponseWriter, r *http.Request) {
 	s.Lock()
 	defer s.Unlock()
 	s.dropped++
-	w.WriteHeader(503)
+	w.WriteHeader(droppedStatus)
 }
 
 func (s *stats) Stats() (int, int, []time.Time) {

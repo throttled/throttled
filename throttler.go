@@ -6,8 +6,11 @@ import (
 )
 
 var (
+	// Handles the dropped requests that were denied access because
+	// of a throttler. By default, returns a 429 status code with a
+	// generic message.
 	DefaultDroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "rate limit exceeded", http.StatusServiceUnavailable)
+		http.Error(w, "rate limit exceeded", 429)
 	})
 
 	OnError = func(w http.ResponseWriter, r *http.Request, err error) {

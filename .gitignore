@@ -6,3 +6,4 @@ examples/interval/interval
 examples/interval-vary/interval-vary
 examples/interval-many/interval-many
 examples/memstats/memstats
+examples/rate-limit/rate-limit
