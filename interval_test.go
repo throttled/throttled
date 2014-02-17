@@ -26,10 +26,10 @@ func TestInterval(t *testing.T) {
 		th := Interval(PerSec(c.rps), c.bursts, nil)
 		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 		b := commands.Boom{
-			Req:   &commands.ReqOpts{},
-			N:     c.n,
-			C:     c.c,
-			Quiet: true,
+			Req:    &commands.ReqOpts{},
+			N:      c.n,
+			C:      c.c,
+			Output: "quiet",
 		}
 		// Run the test
 		rpts := runTest(th.Throttle(st), b)
@@ -63,10 +63,10 @@ func TestIntervalVary(t *testing.T) {
 		var booms []commands.Boom
 		for j := 0; j < c.urls; j++ {
 			booms = append(booms, commands.Boom{
-				Req:   &commands.ReqOpts{},
-				N:     c.n,
-				C:     c.c,
-				Quiet: true,
+				Req:    &commands.ReqOpts{},
+				N:      c.n,
+				C:      c.c,
+				Output: "quiet",
 			})
 		}
 		// Run the test

@@ -5,21 +5,40 @@ import (
 	"time"
 
 	"github.com/PuerkitoBio/throttled"
+	"github.com/golang/groupcache/lru"
 )
-
-var _ throttled.StoreTs = (*memStore)(nil)
 
 // memStore implements an in-memory Store.
 type memStore struct {
 	sync.Mutex
-	m map[string]*counter
+	keys *lru.Cache
+	m    map[string]*counter
 }
 
-// NewMemStore creates a new MemStore.
-func NewMemStore() throttled.Store {
-	return &memStore{
-		m: make(map[string]*counter),
+// NewMemStore creates a new MemStore. If maxKeys > 0, the number of different keys
+// is restricted to the specified amount. In this case, it uses an LRU algorithm to
+// evict older keys to make room for newer ones. If a request is made for a key that
+// has been evicted, it will be processed as if its count was 0, possibly allowing requests
+// that should be denied.
+//
+// If maxKeys <= 0, there is no limit on the number of keys, which may use a lot of
+// memory depending on the server's load.
+//
+// The MemStore is only for single-process rate-limiting. To share the rate limit state
+// among multiple instances of the web server, use a database- or key-value-based
+// store.
+func NewMemStore(maxKeys int) throttled.Store {
+	var m *memStore
+	if maxKeys > 0 {
+		m = &memStore{
+			keys: lru.New(maxKeys),
+		}
+	} else {
+		m = &memStore{
+			m: make(map[string]*counter),
+		}
 	}
+	return m
 }
 
 // A counter represents a single entry in the MemStore.
@@ -28,31 +47,30 @@ type counter struct {
 	ts time.Time
 }
 
-// GetTs gets a counter from the memory store for the specified key.
-// It returns the count and the UTC timestamp, or an error. It returns
-// ErrNoSuchKey if the key does not exist in the store.
-func (ms *memStore) GetTs(key string) (int, time.Time, error) {
-	ms.Lock()
-	defer ms.Unlock()
-	c := ms.m[key]
-	if c == nil {
-		return 0, time.Time{}, throttled.ErrNoSuchKey
-	}
-	return c.n, c.ts, nil
-}
-
 // Incr increments the counter for the specified key. It returns the new
-// count value, or an error.
-func (ms *memStore) Incr(key string) (int, error) {
+// count value and the remaining number of seconds, or an error.
+func (ms *memStore) Incr(key string, window time.Duration) (int, int, error) {
 	ms.Lock()
 	defer ms.Unlock()
-	c := ms.m[key]
+	var c *counter
+	if ms.keys != nil {
+		v, _ := ms.keys.Get(key)
+		if v != nil {
+			c = v.(*counter)
+		}
+	} else {
+		c = ms.m[key]
+	}
 	if c == nil {
-		ms.m[key] = &counter{1, time.Now().UTC()}
-		return 1, nil
+		c = &counter{0, time.Now().UTC()}
 	}
 	c.n++
-	return c.n, nil
+	if ms.keys != nil {
+		ms.keys.Add(key, c)
+	} else {
+		ms.m[key] = c
+	}
+	return c.n, throttled.GetRemainingSeconds(c.ts, window), nil
 }
 
 // Reset resets the counter for the specified key. It sets the count
@@ -61,11 +79,11 @@ func (ms *memStore) Incr(key string) (int, error) {
 func (ms *memStore) Reset(key string, win time.Duration) error {
 	ms.Lock()
 	defer ms.Unlock()
-	c := ms.m[key]
-	if c == nil {
-		ms.m[key] = &counter{1, time.Now().UTC()}
-		return nil
+	c := &counter{1, time.Now().UTC()}
+	if ms.keys != nil {
+		ms.keys.Add(key, c)
+	} else {
+		ms.m[key] = c
 	}
-	c.n, c.ts = 1, time.Now().UTC()
 	return nil
 }

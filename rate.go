@@ -11,7 +11,8 @@ import (
 // in a certain time window defined by the Quota q. The q parameter specifies
 // the requests per time window, and it is silently set to at least 1 request
 // and at least a 1 second window if it is less than that. The time window
-// starts when the first request is made outside an existing window.
+// starts when the first request is made outside an existing window. Fractions
+// of seconds are not supported, they are truncated.
 //
 // The vary parameter indicates what criteria should be used to group requests
 // for which the limit must be applied (ex.: rate limit based on the remote address).
@@ -33,13 +34,6 @@ import (
 //    Retry-After : seconds before the caller should retry
 //
 func RateLimit(q Quota, vary *VaryBy, store Store) *Throttler {
-	// Make sure the store implements a getter
-	switch store.(type) {
-	case StoreTs, StoreSecs:
-	default:
-		panic("throttled: store must implement either throttled.StoreTs or throttled.StoreSecs")
-	}
-
 	// Extract requests and window
 	reqs, win := q.Quota()
 
@@ -77,26 +71,13 @@ func (r *rateLimiter) Start() {
 // the request can go through and signals it via the returned channel.
 // It returns an error if the operation fails.
 func (r *rateLimiter) Request(w http.ResponseWriter, req *http.Request) (<-chan bool, error) {
-	var cnt, secs int
-	var err error
-	var ts time.Time
-
 	// Create return channel and initialize
 	ch := make(chan bool, 1)
 	ok := true
 	key := r.vary.Key(req)
 
 	// Get the current count and remaining seconds
-	switch st := r.store.(type) {
-	case StoreTs:
-		cnt, ts, err = st.GetTs(key)
-		if err == nil {
-			secs = int((r.window - time.Now().UTC().Sub(ts)).Seconds())
-		}
-	case StoreSecs:
-		cnt, secs, err = st.GetSecs(key)
-	}
-
+	cnt, secs, err := r.store.Incr(key, r.window)
 	// Handle the possible situations: error, begin new window, or increment current window.
 	switch {
 	case err != nil && err != ErrNoSuchKey:
@@ -110,11 +91,6 @@ func (r *rateLimiter) Request(w http.ResponseWriter, req *http.Request) (<-chan 
 		cnt = 1
 		secs = int(r.window.Seconds())
 	default:
-		// Increment
-		cnt, err = r.store.Incr(key)
-		if err != nil {
-			return nil, err
-		}
 		// If the limit is reached, deny access
 		if cnt > r.reqs {
 			ok = false

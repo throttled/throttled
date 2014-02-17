@@ -33,7 +33,7 @@ func main() {
 	start := time.Now()
 	switch *storeType {
 	case "mem":
-		st = store.NewMemStore()
+		st = store.NewMemStore(0)
 	case "redis":
 		st = store.NewRedisStore(setupRedis(), "throttled:", 0)
 	case "memcached":

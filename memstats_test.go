@@ -38,10 +38,10 @@ func TestMemStats(t *testing.T) {
 		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 		// Run the test
 		b := commands.Boom{
-			Req:   &commands.ReqOpts{},
-			N:     c.n,
-			C:     c.c,
-			Quiet: true,
+			Req:    &commands.ReqOpts{},
+			N:      c.n,
+			C:      c.c,
+			Output: "quiet",
 		}
 		rpts := runTest(th.Throttle(st), b)
 		// Assert results

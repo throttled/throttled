@@ -22,21 +22,18 @@ func newMapStore() *mapStore {
 		make(map[string]time.Time),
 	}
 }
-func (ms *mapStore) Incr(key string) (int, error) {
+func (ms *mapStore) Incr(key string, window time.Duration) (int, int, error) {
+	if _, ok := ms.cnt[key]; !ok {
+		return 0, 0, ErrNoSuchKey
+	}
 	ms.cnt[key]++
-	return ms.cnt[key], nil
+	ts := ms.ts[key]
+	return ms.cnt[key], GetRemainingSeconds(ts, window), nil
 }
 func (ms *mapStore) Reset(key string, win time.Duration) error {
 	ms.cnt[key] = 1
 	ms.ts[key] = time.Now().UTC()
 	return nil
-}
-func (ms *mapStore) GetTs(key string) (int, time.Time, error) {
-	cnt, ok := ms.cnt[key]
-	if !ok {
-		return 0, time.Time{}, ErrNoSuchKey
-	}
-	return cnt, ms.ts[key], nil
 }
 
 func TestRateLimit(t *testing.T) {

@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/PuerkitoBio/throttled"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -26,67 +25,37 @@ func getPool() *redis.Pool {
 func TestRedisStore(t *testing.T) {
 	pool := getPool()
 	st := NewRedisStore(pool, "throttled:", 1)
+	win := 2 * time.Second
 
-	// Get invalid key returns NoSuchKey
-	_, _, err := st.(throttled.StoreSecs).GetSecs("unknown")
-	if err != throttled.ErrNoSuchKey {
-		t.Errorf("expected get of unknown key to return %s, got %v", throttled.ErrNoSuchKey, err)
-	}
-
-	// Reset stores a key with count of 1, full window remaining
-	window := 5 * time.Second
-	err = st.Reset("k", window)
+	// Incr increments the key, even if it does not exist
+	cnt, secs, err := st.Incr("k", win)
 	if err != nil {
-		t.Errorf("expected reset to return nil, got %s", err)
+		t.Errorf("expected initial incr to return nil error, got %s", err)
 	}
-	cnt, sec1, _ := st.(throttled.StoreSecs).GetSecs("k")
 	if cnt != 1 {
-		t.Errorf("expected reset to set count to 1, got %d", cnt)
+		t.Errorf("expected initial incr to return 1, got %d", cnt)
 	}
-	if sec1 != int(window.Seconds()) {
-		t.Errorf("expected remaining seconds to be %d, got %d", int(window.Seconds()), sec1)
-	}
-
-	// Incr increments the key
-	cnt, err = st.Incr("k")
-	if err != nil {
-		t.Errorf("expected incr to return nil error, got %s", err)
-	}
-	if cnt != 2 {
-		t.Errorf("expected incr to return 2, got %d", cnt)
-	}
-	cnt, sec2, _ := st.(throttled.StoreSecs).GetSecs("k")
-	if cnt != 2 {
-		t.Errorf("expected cnt after incr to return 2, got %d", cnt)
-	}
-	if sec2 != sec1 {
-		t.Errorf("expected to get same remaining seconds %d, got %d", sec1, sec2)
+	if secs != int(win.Seconds()) {
+		t.Errorf("expected initial incr to return %d secs, got %d", int(win.Seconds()), secs)
 	}
 
 	// Waiting a second diminishes the remaining seconds
 	time.Sleep(time.Second)
-	_, sec3, _ := st.(throttled.StoreSecs).GetSecs("k")
-	if sec3 != sec1-1 {
-		t.Errorf("expected get after a 1s sleep to return %d remaining seconds, got %d", sec1-1, sec3)
+	_, sec2, _ := st.Incr("k", win)
+	if sec2 != secs-1 {
+		t.Errorf("expected 2nd incr after a 1s sleep to return %d secs, got %d", secs-1, sec2)
 	}
 
-	// Reset on existing key brings it back to 1, new timestamp
-	err = st.Reset("k", time.Second)
-	if err != nil {
-		t.Errorf("expected reset on existing key to return nil, got %s", err)
-	}
-	cnt, sec4, _ := st.(throttled.StoreSecs).GetSecs("k")
-	if cnt != 1 {
-		t.Errorf("expected reset on existing key to return cnt of 1, got %d", cnt)
-	}
-	if sec4 != 1 {
-		t.Errorf("expected reset to return remaining seconds of %d, got %d", 1, sec4)
-	}
-
-	// Waiting a second so the key expires, Get should return no such key
+	// Waiting a second so the key expires, Incr should set back to 1, initial secs
 	time.Sleep(1100 * time.Millisecond)
-	_, _, err = st.(throttled.StoreSecs).GetSecs("k")
-	if err != throttled.ErrNoSuchKey {
-		t.Errorf("expected get after key expiration to return %s, got %v", throttled.ErrNoSuchKey, err)
+	cnt, sec3, err := st.Incr("k", win)
+	if err != nil {
+		t.Errorf("expected last incr to return nil error, got %s", err)
+	}
+	if cnt != 1 {
+		t.Errorf("expected last incr to return 1, got %d", cnt)
+	}
+	if sec3 != int(win.Seconds()) {
+		t.Errorf("expected last incr to return %d secs, got %d", int(win.Seconds()), sec3)
 	}
 }

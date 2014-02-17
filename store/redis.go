@@ -1,14 +1,11 @@
 package store
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/PuerkitoBio/throttled"
 	"github.com/garyburd/redigo/redis"
 )
-
-var _ throttled.StoreSecs = (*redisStore)(nil)
 
 type redisStore struct {
 	pool   *redis.Pool
@@ -24,49 +21,41 @@ func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) throttled.Store {
 	}
 }
 
-func (r *redisStore) Incr(key string) (int, error) {
-	conn := r.pool.Get()
-	defer conn.Close()
-	if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
-		return 0, err
-	}
-	return redis.Int(conn.Do("INCR", r.prefix+key))
-}
-
-func (r *redisStore) Reset(key string, window time.Duration) error {
-	conn := r.pool.Get()
-	defer conn.Close()
-	if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
-		return err
-	}
-	_, err := redis.String(conn.Do("SETEX", r.prefix+key, int(window.Seconds()), 1))
-	return err
-}
-
-func (r *redisStore) GetSecs(key string) (int, int, error) {
+func (r *redisStore) Incr(key string, window time.Duration) (int, int, error) {
 	conn := r.pool.Get()
 	defer conn.Close()
 	if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
 		return 0, 0, err
 	}
 	conn.Send("MULTI")
-	conn.Send("GET", r.prefix+key)
+	conn.Send("INCR", r.prefix+key)
 	conn.Send("TTL", r.prefix+key)
 	vals, err := redis.Values(conn.Do("EXEC"))
 	if err != nil {
 		conn.Do("DISCARD")
 		return 0, 0, err
 	}
-	var scnt string
-	var cnt, secs int
-	if _, err = redis.Scan(vals, &scnt, &secs); err != nil {
+	var cnt, ttl int
+	if _, err = redis.Scan(vals, &cnt, &ttl); err != nil {
 		return 0, 0, err
 	}
-	if scnt == "" {
-		return 0, 0, throttled.ErrNoSuchKey
+	if ttl == -1 {
+		ttl = int(window.Seconds())
+		_, err = conn.Do("EXPIRE", r.prefix+key, ttl)
+		if err != nil {
+			return 0, 0, err
+		}
 	}
-	if cnt, err = strconv.Atoi(scnt); err != nil {
-		return 0, 0, err
+	return cnt, ttl, nil
+}
+
+// Reset sets the value of the key to 1, and resets its time window.
+func (r *redisStore) Reset(key string, window time.Duration) error {
+	conn := r.pool.Get()
+	defer conn.Close()
+	if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
+		return err
 	}
-	return cnt, secs, nil
+	_, err := redis.String(conn.Do("SET", r.prefix+key, "1", "EX", int(window.Seconds()), "NX"))
+	return err
 }
