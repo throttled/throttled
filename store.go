@@ -24,8 +24,8 @@ type Store interface {
 	Reset(string, time.Duration) error
 }
 
-// Helper function to return the number of seconds remaining from an absolute
-// timestamp in UTC.
+// GetRemainingSeconds is a helper function that returns the number of seconds
+// remaining from an absolute timestamp in UTC.
 func GetRemainingSeconds(ts time.Time, window time.Duration) int {
 	return int((window - time.Now().UTC().Sub(ts)).Seconds())
 }

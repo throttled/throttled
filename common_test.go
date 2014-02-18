@@ -53,12 +53,12 @@ func runTest(h http.Handler, b ...commands.Boom) []*commands.Report {
 	wg.Add(len(b))
 	for i, bo := range b {
 		bo.Req.Url = srv.URL + fmt.Sprintf("/%d", i)
-		go func() {
+		go func(bo commands.Boom) {
 			mu.Lock()
 			defer mu.Unlock()
 			rpts = append(rpts, bo.Run())
 			wg.Done()
-		}()
+		}(bo)
 	}
 	wg.Wait()
 	return rpts

@@ -40,7 +40,7 @@ func main() {
 	default:
 		log.Fatalf("unsupported store: %s", *storeType)
 	}
-	t := throttled.RateLimit(throttled.Q{*requests, *window}, &throttled.VaryBy{
+	t := throttled.RateLimit(throttled.Q{Requests: *requests, Window: *window}, &throttled.VaryBy{
 		Path: true,
 	}, st)
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
