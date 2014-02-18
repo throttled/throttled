@@ -6,17 +6,33 @@ import (
 	"strings"
 )
 
+// VaryBy defines the criteria to use to group requests.
 type VaryBy struct {
+	// Vary by the RemoteAddr as specified by the net/http.Request field.
 	RemoteAddr bool
-	Method     bool
-	Path       bool
-	Headers    []string
-	Params     []string
-	Cookies    []string
-	Separator  string
-	MaxKeys    int
+
+	// Vary by the HTTP Method as specified by the net/http.Request field.
+	Method bool
+
+	// Vary by the URL's Path as specified by the Path field of the net/http.Request
+	// URL field.
+	Path bool
+
+	// Vary by this list of header names, read from the net/http.Request Header field.
+	Headers []string
+
+	// Vary by this list of parameters, read from the net/http.Request FormValue method.
+	Params []string
+
+	// Vary by this list of cookie names, read from the net/http.Request Cookie method.
+	Cookies []string
+
+	// Use this separator string to concatenate the various criteria of the VaryBy struct.
+	// Defaults to a newline character if empty (\n).
+	Separator string
 }
 
+// Key returns the key for this request based on the criteria defined by the VaryBy struct.
 func (vb *VaryBy) Key(r *http.Request) string {
 	var buf bytes.Buffer
 

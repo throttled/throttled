@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// Static check to ensure that rateLimiter implements Limiter.
+var _ Limiter = (*rateLimiter)(nil)
+
 // RateLimit creates a throttler that limits the number of requests allowed
 // in a certain time window defined by the Quota q. The q parameter specifies
 // the requests per time window, and it is silently set to at least 1 request
@@ -22,6 +25,10 @@ import (
 // time remaining in the window. The throttled package comes with some stores
 // in the throttled/store package. Custom stores can be created too, by implementing
 // the Store interface.
+//
+// Requests that bust the rate limit are denied access and go through the dropped handler,
+// which may be specified on the Throttler and that defaults to the package-global
+// variable DefaultDroppedHandler.
 //
 // The rate limit throttler sets the following headers on the response:
 //

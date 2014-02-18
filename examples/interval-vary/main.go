@@ -28,10 +28,9 @@ func main() {
 	var mu sync.Mutex
 
 	start := time.Now()
-	t := throttled.Interval(throttled.Delay(*delay), *bursts, &throttled.VaryBy{
-		Path:    true,
-		MaxKeys: *maxkeys,
-	})
+	t := throttled.Interval(throttled.D(*delay), *bursts, &throttled.VaryBy{
+		Path: true,
+	}, *maxkeys)
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !*quiet {
 			log.Printf("web: KO: %s", time.Since(start))

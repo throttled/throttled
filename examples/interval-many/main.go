@@ -26,7 +26,7 @@ func main() {
 	var mu sync.Mutex
 
 	start := time.Now()
-	t := throttled.Interval(throttled.Delay(*delay), *bursts, nil)
+	t := throttled.Interval(throttled.D(*delay), *bursts, nil, 0)
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !*quiet {
 			log.Printf("%s: KO: %s", r.URL.Path, time.Since(start))

@@ -24,6 +24,11 @@ func getPool() *redis.Pool {
 
 func TestRedisStore(t *testing.T) {
 	pool := getPool()
+	c := pool.Get()
+	if _, err := redis.String(c.Do("PING")); err != nil {
+		c.Close()
+		t.Skip("redis server not available on localhost port 6379")
+	}
 	st := NewRedisStore(pool, "throttled:", 1)
 	win := 2 * time.Second
 

@@ -23,7 +23,7 @@ func TestInterval(t *testing.T) {
 		// Setup the stats handler
 		st := &stats{}
 		// Create the throttler
-		th := Interval(PerSec(c.rps), c.bursts, nil)
+		th := Interval(PerSec(c.rps), c.bursts, nil, 0)
 		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 		b := commands.Boom{
 			Req:    &commands.ReqOpts{},
@@ -58,7 +58,7 @@ func TestIntervalVary(t *testing.T) {
 		// Setup the stats handler
 		st := &stats{}
 		// Create the throttler
-		th := Interval(PerSec(c.rps), c.bursts, nil)
+		th := Interval(PerSec(c.rps), c.bursts, nil, 0)
 		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 		var booms []commands.Boom
 		for j := 0; j < c.urls; j++ {

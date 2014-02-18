@@ -21,12 +21,13 @@ type memStore struct {
 // has been evicted, it will be processed as if its count was 0, possibly allowing requests
 // that should be denied.
 //
-// If maxKeys <= 0, there is no limit on the number of keys, which may use a lot of
+// If maxKeys <= 0, there is no limit on the number of keys, which may use an unbounded amount of
 // memory depending on the server's load.
 //
 // The MemStore is only for single-process rate-limiting. To share the rate limit state
 // among multiple instances of the web server, use a database- or key-value-based
 // store.
+//
 func NewMemStore(maxKeys int) throttled.Store {
 	var m *memStore
 	if maxKeys > 0 {

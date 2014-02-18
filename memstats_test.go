@@ -21,19 +21,11 @@ func TestMemStats(t *testing.T) {
 		1: {200, 10, 0, 600000, 0},
 		2: {500, 10, 2, 555555, 10 * time.Millisecond},
 	}
-	var mem runtime.MemStats
 	for i, c := range cases {
 		// Setup the stats handler
 		st := &stats{}
-		runtime.ReadMemStats(&mem)
-		limit := new(runtime.MemStats)
-		if c.gc > 0 {
-			limit.NumGC = mem.NumGC + c.gc
-		}
-		if c.total > 0 {
-			limit.TotalAlloc = mem.TotalAlloc + c.total
-		}
 		// Create the throttler
+		limit := MemThresholds(&runtime.MemStats{NumGC: c.gc, TotalAlloc: c.total})
 		th := MemStats(limit, c.rate)
 		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
 		// Run the test

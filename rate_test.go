@@ -37,7 +37,7 @@ func (ms *mapStore) Reset(key string, win time.Duration) error {
 }
 
 func TestRateLimit(t *testing.T) {
-	quota := CustomQuota{5, 5 * time.Second}
+	quota := Q{5, 5 * time.Second}
 	cases := []struct {
 		limit, remain, reset, status int
 	}{
@@ -49,7 +49,7 @@ func TestRateLimit(t *testing.T) {
 		5: {5, 0, 2, droppedStatus},
 	}
 	// Limit the requests to 2 per second
-	th := Interval(PerSec(2), 0, nil)
+	th := Interval(PerSec(2), 0, nil, 0)
 	// Rate limit
 	rl := RateLimit(quota, nil, newMapStore())
 	// Create the stats
