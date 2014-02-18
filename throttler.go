@@ -10,7 +10,7 @@ var (
 	// of a throttler. By default, returns a 429 status code with a
 	// generic message.
 	DefaultDroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "rate limit exceeded", 429)
+		http.Error(w, "limit exceeded", 429)
 	})
 
 	// Error is the function to call when an error occurs on a throttled handler.
