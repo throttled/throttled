@@ -9,15 +9,15 @@ var (
 	// DefaultDeniedHandler handles the requests that were denied access because
 	// of a throttler. By default, returns a 429 status code with a
 	// generic message.
-	DefaultDeniedHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	DefaultDeniedHandler = http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "limit exceeded", 429)
-	})
+	}))
 
 	// Error is the function to call when an error occurs on a throttled handler.
 	// By default, returns a 500 status code with a generic message.
-	Error ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
+	Error = ErrorFunc(func(w http.ResponseWriter, r *http.Request, err error) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
-	}
+	})
 )
 
 // ErrorFunc defines the function type for the Error variable.
