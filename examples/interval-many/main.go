@@ -30,12 +30,12 @@ func main() {
 
 	// Create the interval throttle
 	t := throttled.Interval(throttled.D(*delay), *bursts, nil, 0)
-	// Set its dropped handler
-	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Set its denied handler
+	t.DeniedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *output == "v" || *output == "ko" {
 			log.Printf("%s: KO: %s", r.URL.Path, time.Since(start))
 		}
-		throttled.DefaultDroppedHandler(w, r)
+		throttled.DefaultDeniedHandler.ServeHTTP(w, r)
 		mu.Lock()
 		defer mu.Unlock()
 		ko++

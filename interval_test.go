@@ -24,7 +24,7 @@ func TestInterval(t *testing.T) {
 		st := &stats{}
 		// Create the throttler
 		th := Interval(PerSec(c.rps), c.bursts, nil, 0)
-		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
+		th.DeniedHandler = http.HandlerFunc(st.DeniedHTTP)
 		b := commands.Boom{
 			Req:    &commands.ReqOpts{},
 			N:      c.n,
@@ -59,7 +59,7 @@ func TestIntervalVary(t *testing.T) {
 		st := &stats{}
 		// Create the throttler
 		th := Interval(PerSec(c.rps), c.bursts, nil, 0)
-		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
+		th.DeniedHandler = http.HandlerFunc(st.DeniedHTTP)
 		var booms []commands.Boom
 		for j := 0; j < c.urls; j++ {
 			booms = append(booms, commands.Boom{
@@ -91,7 +91,7 @@ func assertStats(t *testing.T, ix int, st *stats, rpts []*commands.Report) {
 	var twos, fives, max int
 	for _, rpt := range rpts {
 		twos += rpt.StatusCodeDist[200]
-		fives += rpt.StatusCodeDist[droppedStatus]
+		fives += rpt.StatusCodeDist[deniedStatus]
 		if len(rpt.StatusCodeDist) > max {
 			max = len(rpt.StatusCodeDist)
 		}

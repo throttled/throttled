@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const droppedStatus = 429
+const deniedStatus = 429
 
 // Simple memory store for tests, unsafe for concurrent access
 type mapStore struct {
@@ -46,7 +46,7 @@ func TestRateLimit(t *testing.T) {
 		2: {5, 2, 4, 200},
 		3: {5, 1, 3, 200},
 		4: {5, 0, 3, 200},
-		5: {5, 0, 2, droppedStatus},
+		5: {5, 0, 2, deniedStatus},
 	}
 	// Limit the requests to 2 per second
 	th := Interval(PerSec(2), 0, nil, 0)
@@ -91,7 +91,7 @@ func callRateLimited(t *testing.T, i, limit, remain, reset, status int, url stri
 	if vi < reset-1 || vi > reset+1 {
 		t.Errorf("%d: expected reset header to be close to %d, got %d", i, reset, vi)
 	}
-	if status == droppedStatus {
+	if status == deniedStatus {
 		v := res.Header.Get("Retry-After")
 		vi, _ := strconv.Atoi(v)
 		if vi < reset-1 || vi > reset+1 {

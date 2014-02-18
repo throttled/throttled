@@ -21,9 +21,9 @@ var _ Limiter = (*intervalLimiter)(nil)
 //
 // The bursts argument indicates the number of exceeding requests that may
 // be queued up waiting to be processed. Requests that overflow the queue
-// are dropped and go through the dropped handler, which may be specified
+// are dropped and go through the denied handler, which may be specified
 // on the Throttler and that defaults to the package-global variable
-// DefaultDroppedHandler.
+// DefaultDeniedHandler.
 //
 // The vary argument indicates the criteria to use to group the requests,
 // so that the interval applies to the requests in the same group (e.g. based on

@@ -6,19 +6,22 @@ import (
 )
 
 var (
-	// DefaultDroppedHandler handles the dropped requests that were denied access because
+	// DefaultDeniedHandler handles the requests that were denied access because
 	// of a throttler. By default, returns a 429 status code with a
 	// generic message.
-	DefaultDroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	DefaultDeniedHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "limit exceeded", 429)
 	})
 
 	// Error is the function to call when an error occurs on a throttled handler.
 	// By default, returns a 500 status code with a generic message.
-	Error = func(w http.ResponseWriter, r *http.Request, err error) {
+	Error ErrorFunc = func(w http.ResponseWriter, r *http.Request, err error) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 )
+
+// ErrorFunc defines the function type for the Error variable.
+type ErrorFunc func(w http.ResponseWriter, r *http.Request, err error)
 
 // The Limiter interface defines the methods required to control access to a
 // throttled handler.
@@ -36,9 +39,9 @@ func Custom(l Limiter) *Throttler {
 
 // A Throttler controls access to HTTP handlers using a Limiter.
 type Throttler struct {
-	// DroppedHandler is called if the request is disallowed. If it is nil,
-	// the DefaultDroppedHandler variable is used.
-	DroppedHandler http.Handler
+	// DeniedHandler is called if the request is disallowed. If it is nil,
+	// the DefaultDeniedHandler variable is used.
+	DeniedHandler http.Handler
 
 	limiter Limiter
 	// The mutex protects the started flag
@@ -49,7 +52,7 @@ type Throttler struct {
 // Throttle wraps a HTTP handler so that its access is controlled by
 // the Throttler. It returns the Handler with the throttling logic.
 func (t *Throttler) Throttle(h http.Handler) http.Handler {
-	droph := t.start()
+	dh := t.start()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ch, err := t.limiter.Limit(w, r)
 		if err != nil {
@@ -60,24 +63,24 @@ func (t *Throttler) Throttle(h http.Handler) http.Handler {
 		if ok {
 			h.ServeHTTP(w, r)
 		} else {
-			droph.ServeHTTP(w, r)
+			dh.ServeHTTP(w, r)
 		}
 	})
 }
 
-// start starts the throttling and returns the effective dropped handler to
+// start starts the throttling and returns the effective denied handler to
 // use for requests that were denied access.
 func (t *Throttler) start() http.Handler {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	// Get the effective dropped handler
-	drop := t.DroppedHandler
-	if drop == nil {
-		drop = DefaultDroppedHandler
+	// Get the effective denied handler
+	dh := t.DeniedHandler
+	if dh == nil {
+		dh = DefaultDeniedHandler
 	}
 	if !t.started {
 		t.limiter.Start()
 		t.started = true
 	}
-	return drop
+	return dh
 }

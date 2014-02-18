@@ -51,12 +51,12 @@ func main() {
 	start := time.Now()
 	// Create the custom throttler using our custom limiter
 	t := throttled.Custom(&customLimiter{})
-	// Set its dropped handler
-	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Set its denied handler
+	t.DeniedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *output == "v" || *output == "ko" {
 			log.Printf("KO: %s", time.Since(start))
 		}
-		throttled.DefaultDroppedHandler(w, r)
+		throttled.DefaultDeniedHandler.ServeHTTP(w, r)
 		mu.Lock()
 		defer mu.Unlock()
 		ko++

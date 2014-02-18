@@ -26,9 +26,9 @@ var _ Limiter = (*rateLimiter)(nil)
 // in the throttled/store package. Custom stores can be created too, by implementing
 // the Store interface.
 //
-// Requests that bust the rate limit are denied access and go through the dropped handler,
+// Requests that bust the rate limit are denied access and go through the denied handler,
 // which may be specified on the Throttler and that defaults to the package-global
-// variable DefaultDroppedHandler.
+// variable DefaultDeniedHandler.
 //
 // The rate limit throttler sets the following headers on the response:
 //

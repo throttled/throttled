@@ -42,12 +42,12 @@ func main() {
 	})
 	// Create the MemStats throttler
 	t := throttled.MemStats(thresh, *refrate)
-	// Set its dropped handler
-	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Set its denied handler
+	t.DeniedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *output == "v" || *output == "ko" {
 			log.Printf("KO: %s", time.Since(start))
 		}
-		throttled.DefaultDroppedHandler(w, r)
+		throttled.DefaultDeniedHandler.ServeHTTP(w, r)
 		mu.Lock()
 		defer mu.Unlock()
 		ko++
@@ -66,12 +66,12 @@ func main() {
 		// Read the whole file in memory, to actually use 64Kb (instead of streaming to w)
 		b, err := ioutil.ReadFile("test-file")
 		if err != nil {
-			throttled.OnError(w, r, err)
+			throttled.Error(w, r, err)
 			return
 		}
 		_, err = w.Write(b)
 		if err != nil {
-			throttled.OnError(w, r, err)
+			throttled.Error(w, r, err)
 		}
 		mu.Lock()
 		defer mu.Unlock()

@@ -34,12 +34,12 @@ func main() {
 	t := throttled.Interval(throttled.D(*delay), *bursts, &throttled.VaryBy{
 		Path: true,
 	}, *maxkeys)
-	// Set the dropped handler
-	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Set the denied handler
+	t.DeniedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *output == "v" || *output == "ko" {
 			log.Printf("KO: %s", time.Since(start))
 		}
-		throttled.DefaultDroppedHandler(w, r)
+		throttled.DefaultDeniedHandler.ServeHTTP(w, r)
 		mu.Lock()
 		defer mu.Unlock()
 		ko++

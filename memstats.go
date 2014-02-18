@@ -26,8 +26,8 @@ type memStatsLimiter struct {
 //
 // As soon as one threshold value is reached, the access is denied. If the value can
 // decrease, access will be allowed again once it gets back under the threshold value.
-// Denied requests go through the dropped handler, which may be specified on the Throttler
-// and that defaults to the package-global variable DefaultDroppedHandler.
+// Denied requests go through the denied handler, which may be specified on the Throttler
+// and that defaults to the package-global variable DefaultDeniedHandler.
 //
 // Thresholds must be specified in absolute numbers (i.e. NumGC = 10 means stop once the
 // NumGC reaches 10, not when the current value increments by 10), and zero values are

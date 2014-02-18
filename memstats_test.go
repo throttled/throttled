@@ -27,7 +27,7 @@ func TestMemStats(t *testing.T) {
 		// Create the throttler
 		limit := MemThresholds(&runtime.MemStats{NumGC: c.gc, TotalAlloc: c.total})
 		th := MemStats(limit, c.rate)
-		th.DroppedHandler = http.HandlerFunc(st.DroppedHTTP)
+		th.DeniedHandler = http.HandlerFunc(st.DeniedHTTP)
 		// Run the test
 		b := commands.Boom{
 			Req:    &commands.ReqOpts{},
