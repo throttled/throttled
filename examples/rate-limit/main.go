@@ -17,9 +17,9 @@ import (
 var (
 	requests  = flag.Int("requests", 10, "number of requests allowed in the time window")
 	window    = flag.Duration("window", time.Minute, "time window for the limit of requests")
-	storeType = flag.String("store", "mem", "store to use, one of `mem`, `redis` (on default localhost port) or `memcached`")
+	storeType = flag.String("store", "mem", "store to use, one of `mem` or `redis` (on default localhost port)")
 	delayRes  = flag.Duration("delay-response", 0, "delay the response by a random duration between 0 and this value")
-	quiet     = flag.Bool("quiet", false, "close to no output")
+	output    = flag.String("output", "v", "type of output, one of `v`erbose, `q`uiet, `ok`-only, `ko`-only")
 )
 
 func main() {
@@ -30,21 +30,25 @@ func main() {
 	var mu sync.Mutex
 	var st throttled.Store
 
+	// Keep the start time to print since-time
 	start := time.Now()
+	// Create the rate-limit store
 	switch *storeType {
 	case "mem":
 		st = store.NewMemStore(0)
 	case "redis":
 		st = store.NewRedisStore(setupRedis(), "throttled:", 0)
-	case "memcached":
 	default:
 		log.Fatalf("unsupported store: %s", *storeType)
 	}
+	// Create the rate-limit throttler, varying on path
 	t := throttled.RateLimit(throttled.Q{Requests: *requests, Window: *window}, &throttled.VaryBy{
 		Path: true,
 	}, st)
+
+	// Set its dropped handler
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*quiet {
+		if *output == "v" || *output == "ko" {
 			log.Printf("KO: %s", time.Since(start))
 		}
 		throttled.DefaultDroppedHandler(w, r)
@@ -52,9 +56,11 @@ func main() {
 		defer mu.Unlock()
 		ko++
 	})
+
+	// Throttle the OK handler
 	rand.Seed(time.Now().Unix())
 	h = t.Throttle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*quiet {
+		if *output == "v" || *output == "ok" {
 			log.Printf("ok: %s", time.Since(start))
 		}
 		if *delayRes > 0 {

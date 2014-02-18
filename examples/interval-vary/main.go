@@ -17,7 +17,7 @@ var (
 	bursts   = flag.Int("bursts", 10, "number of bursts allowed")
 	maxkeys  = flag.Int("max-keys", 1000, "maximum number of keys")
 	delayRes = flag.Duration("delay-response", 0, "delay the response by a random duration between 0 and this value")
-	quiet    = flag.Bool("quiet", false, "close to no output")
+	output   = flag.String("output", "v", "type of output, one of `v`erbose, `q`uiet, `ok`-only, `ko`-only")
 )
 
 func main() {
@@ -27,23 +27,29 @@ func main() {
 	var ok, ko int
 	var mu sync.Mutex
 
+	// Keep the start time to print since-time
 	start := time.Now()
+
+	// Create the interval throttler
 	t := throttled.Interval(throttled.D(*delay), *bursts, &throttled.VaryBy{
 		Path: true,
 	}, *maxkeys)
+	// Set the dropped handler
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*quiet {
-			log.Printf("web: KO: %s", time.Since(start))
+		if *output == "v" || *output == "ko" {
+			log.Printf("KO: %s", time.Since(start))
 		}
-		w.WriteHeader(503)
+		throttled.DefaultDroppedHandler(w, r)
 		mu.Lock()
 		defer mu.Unlock()
 		ko++
 	})
+
+	// Throttle the OK handler
 	rand.Seed(time.Now().Unix())
 	h = t.Throttle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*quiet {
-			log.Printf("web: ok: %s", time.Since(start))
+		if *output == "v" || *output == "ok" {
+			log.Printf("ok: %s", time.Since(start))
 		}
 		if *delayRes > 0 {
 			wait := time.Duration(rand.Intn(int(*delayRes)))

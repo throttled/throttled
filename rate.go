@@ -74,10 +74,10 @@ func (r *rateLimiter) Start() {
 	}
 }
 
-// Request is called for each request to the throttled handler. It checks if
+// Limit is called for each request to the throttled handler. It checks if
 // the request can go through and signals it via the returned channel.
 // It returns an error if the operation fails.
-func (r *rateLimiter) Request(w http.ResponseWriter, req *http.Request) (<-chan bool, error) {
+func (r *rateLimiter) Limit(w http.ResponseWriter, req *http.Request) (<-chan bool, error) {
 	// Create return channel and initialize
 	ch := make(chan bool, 1)
 	ok := true

@@ -74,10 +74,10 @@ func (il *intervalLimiter) Start() {
 	go process(il.bucket, il.delay)
 }
 
-// Request is called for each request to the throttled handler. It tries to
+// Limit is called for each request to the throttled handler. It tries to
 // queue the request to allow it to run at the given interval, but if the
 // queue is full, the request is denied access.
-func (il *intervalLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
+func (il *intervalLimiter) Limit(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
 	ch := make(chan bool, 1)
 	select {
 	case il.bucket <- ch:
@@ -109,10 +109,10 @@ func (il *intervalVaryByLimiter) Start() {
 	il.keys.OnEvicted = il.stopProcess
 }
 
-// Request is called for each request to the throttled handler. It tries to
+// Limit is called for each request to the throttled handler. It tries to
 // queue the request for the vary-by key to allow it to run at the given interval,
 // but if the queue is full, the request is denied access.
-func (il *intervalVaryByLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
+func (il *intervalVaryByLimiter) Limit(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
 	ch := make(chan bool, 1)
 	key := il.vary.Key(r)
 

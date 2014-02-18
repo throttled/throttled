@@ -13,11 +13,32 @@ import (
 )
 
 var (
-	delay    = flag.Duration("delay", 200*time.Millisecond, "delay between calls")
-	bursts   = flag.Int("bursts", 10, "number of bursts allowed")
 	delayRes = flag.Duration("delay-response", 0, "delay the response by a random duration between 0 and this value")
 	output   = flag.String("output", "v", "type of output, one of `v`erbose, `q`uiet, `ok`-only, `ko`-only")
 )
+
+// Custom limiter: allow requests to the /a path on even seconds only, and
+// allow access to the /b path on odd seconds only.
+//
+// Yes this is absurd. A more realistic case could be to allow requests to some
+// contest page only during a limited time window.
+type customLimiter struct {
+}
+
+func (c *customLimiter) Start() {
+	// No-op
+}
+
+func (c *customLimiter) Limit(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
+	s := time.Now().Second()
+	ch := make(chan bool, 1)
+	ok := (r.URL.Path == "/a" && s%2 == 0) || (r.URL.Path == "/b" && s%2 != 0)
+	ch <- ok
+	if *output == "v" {
+		log.Printf("Custom Limiter: Path=%s, Second=%d; ok? %v", r.URL.Path, s, ok)
+	}
+	return ch, nil
+}
 
 func main() {
 	flag.Parse()
@@ -28,8 +49,8 @@ func main() {
 
 	// Keep the start time to print since-time
 	start := time.Now()
-	// Create the interval throttler
-	t := throttled.Interval(throttled.D(*delay), *bursts, nil, 0)
+	// Create the custom throttler using our custom limiter
+	t := throttled.Custom(&customLimiter{})
 	// Set its dropped handler
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *output == "v" || *output == "ko" {

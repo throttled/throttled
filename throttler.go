@@ -13,9 +13,9 @@ var (
 		http.Error(w, "rate limit exceeded", 429)
 	})
 
-	// OnError is the function to call when an error occurs on a throttled handler.
+	// Error is the function to call when an error occurs on a throttled handler.
 	// By default, returns a 500 status code with a generic message.
-	OnError = func(w http.ResponseWriter, r *http.Request, err error) {
+	Error = func(w http.ResponseWriter, r *http.Request, err error) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 )
@@ -24,7 +24,7 @@ var (
 // throttled handler.
 type Limiter interface {
 	Start()
-	Request(http.ResponseWriter, *http.Request) (<-chan bool, error)
+	Limit(http.ResponseWriter, *http.Request) (<-chan bool, error)
 }
 
 // Custom creates a Throttler using the provided Limiter implementation.
@@ -51,9 +51,9 @@ type Throttler struct {
 func (t *Throttler) Throttle(h http.Handler) http.Handler {
 	droph := t.start()
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ch, err := t.limiter.Request(w, r)
+		ch, err := t.limiter.Limit(w, r)
 		if err != nil {
-			OnError(w, r, err)
+			Error(w, r, err)
 			return
 		}
 		ok := <-ch

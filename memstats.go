@@ -65,10 +65,10 @@ func (m *memStatsLimiter) refresh() {
 	}
 }
 
-// Request is called for each request to the throttled handler. It checks if
+// Limit is called for each request to the throttled handler. It checks if
 // the request can go through by checking the memory thresholds, and signals it
 // via the returned channel.
-func (m *memStatsLimiter) Request(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
+func (m *memStatsLimiter) Limit(w http.ResponseWriter, r *http.Request) (<-chan bool, error) {
 	ch := make(chan bool, 1)
 	// Check if memory thresholds are reached
 	ch <- m.allow()

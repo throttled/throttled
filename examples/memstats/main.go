@@ -21,7 +21,7 @@ var (
 	allocs   = flag.Int("allocs", 0, "number of bytes allocated")
 	refrate  = flag.Duration("refresh", 0, "refresh rate of the memory stats")
 	delayRes = flag.Duration("delay-response", 0, "delay the response by a random duration between 0 and this value")
-	quiet    = flag.Bool("quiet", false, "close to no output")
+	output   = flag.String("output", "v", "type of output, one of `v`erbose, `q`uiet, `ok`-only, `ko`-only")
 )
 
 func main() {
@@ -30,37 +30,34 @@ func main() {
 	var h http.Handler
 	var ok, ko int
 	var mu sync.Mutex
-	var mem runtime.MemStats
 
+	// Keep the start time to print since-time
 	start := time.Now()
-	runtime.ReadMemStats(&mem)
-	thresholds := &runtime.MemStats{}
-	if *numgc > 0 {
-		thresholds.NumGC = mem.NumGC + uint32(*numgc)
-	}
-	if *mallocs > 0 {
-		thresholds.Mallocs = mem.Mallocs + uint64(*mallocs)
-	}
-	if *total > 0 {
-		thresholds.TotalAlloc = mem.TotalAlloc + uint64(*total)
-	}
-	if *allocs > 0 {
-		thresholds.Alloc = mem.Alloc + uint64(*allocs)
-	}
-	t := throttled.MemStats(thresholds, *refrate)
+	// Create the thresholds struct
+	thresh := throttled.MemThresholds(&runtime.MemStats{
+		NumGC:      uint32(*numgc),
+		Mallocs:    uint64(*mallocs),
+		TotalAlloc: uint64(*total),
+		Alloc:      uint64(*allocs),
+	})
+	// Create the MemStats throttler
+	t := throttled.MemStats(thresh, *refrate)
+	// Set its dropped handler
 	t.DroppedHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*quiet {
-			log.Printf("web: KO: %s", time.Since(start))
+		if *output == "v" || *output == "ko" {
+			log.Printf("KO: %s", time.Since(start))
 		}
-		w.WriteHeader(503)
+		throttled.DefaultDroppedHandler(w, r)
 		mu.Lock()
 		defer mu.Unlock()
 		ko++
 	})
+
+	// Throttle the OK handler
 	rand.Seed(time.Now().Unix())
 	h = t.Throttle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !*quiet {
-			log.Printf("web: ok: %s", time.Since(start))
+		if *output == "v" || *output == "ok" {
+			log.Printf("ok: %s", time.Since(start))
 		}
 		if *delayRes > 0 {
 			wait := time.Duration(rand.Intn(int(*delayRes)))
