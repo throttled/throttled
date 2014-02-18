@@ -1,5 +1,7 @@
 # Throttled
 
+[![build status](https://secure.travis-ci.org/PuerkitoBio/throttled.png)](http://travis-ci.org/PuerkitoBio/throttled)
+
 Package throttled implements different throttling strategies for controlling
 access to HTTP handlers.
 
@@ -21,7 +23,7 @@ For example:
 
 Creates a throttler that will allow a request each 100ms (10 requests per second), with
 a buffer of 100 exceeding requests before dropping requests with a status code 429 (by
-default, configurable using th.DroppedHandler or the package-global DefaultDroppedHandler
+default, configurable using th.DeniedHandler or the package-global DefaultDeniedHandler
 variable). Different paths will be throttled independently, so that /path_a and /path_b
 both can serve 10 requests per second. The last argument, 50, indicates the maximum number
 of keys that the throttler will keep in memory.
