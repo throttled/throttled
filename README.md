@@ -1,7 +1,5 @@
 # Throttled
 
-[![build status](https://secure.travis-ci.org/PuerkitoBio/throttled.png)](http://travis-ci.org/PuerkitoBio/throttled)
-
 Package throttled implements different throttling strategies for controlling
 access to HTTP handlers.
 
