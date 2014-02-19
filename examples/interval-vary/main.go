@@ -49,7 +49,7 @@ func main() {
 	rand.Seed(time.Now().Unix())
 	h = t.Throttle(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if *output == "v" || *output == "ok" {
-			log.Printf("ok: %s", time.Since(start))
+			log.Printf("%s: ok: %s", r.URL.Path, time.Since(start))
 		}
 		if *delayRes > 0 {
 			wait := time.Duration(rand.Intn(int(*delayRes)))

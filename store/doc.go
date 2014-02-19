@@ -1,2 +1,2 @@
-// Package store offers a memory-based and a Redis-based throttled.Store implementations.
+// Package store offers a memory-based and a Redis-based throttled.Store implementation.
 package store

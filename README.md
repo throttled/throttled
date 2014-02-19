@@ -76,5 +76,5 @@ Finally, many examples are provided in the /examples sub-folder of the repositor
 The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers.
 
 [doc]: http://godoc.org/github.com/PuerkitoBio/throttled
-[blog]: http://0value.com/path-to-be-determined
+[blog]: http://0value.com/throttled--guardian-of-the-web-server
 [bsd]: http://opensource.org/licenses/BSD-3-Clause

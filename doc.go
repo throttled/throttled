@@ -65,7 +65,7 @@
 //    http://godoc.org/github.com/PuerkitoBio/throttled
 //
 // There is also a blog post explaining the package's usage on 0value.com:
-//    http://0value.com/path-to-be-determined
+//    http://0value.com/throttled--guardian-of-the-web-server
 //
 // Finally, many examples are provided in the /examples sub-folder of the repository.
 //
