@@ -71,7 +71,7 @@ func (ms *memStore) Incr(key string, window time.Duration) (int, int, error) {
 	} else {
 		ms.m[key] = c
 	}
-	return c.n, throttled.GetRemainingSeconds(c.ts, window), nil
+	return c.n, throttled.RemainingSeconds(c.ts, window), nil
 }
 
 // Reset resets the counter for the specified key. It sets the count
