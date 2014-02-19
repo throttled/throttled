@@ -40,6 +40,9 @@ func main() {
 		TotalAlloc: uint64(*total),
 		Alloc:      uint64(*allocs),
 	})
+	if *output != "q" {
+		log.Printf("thresholds: NumGC: %d, Mallocs: %d, Alloc: %dKb, Total: %dKb", thresh.NumGC, thresh.Mallocs, thresh.Alloc/1024, thresh.TotalAlloc/1024)
+	}
 	// Create the MemStats throttler
 	t := throttled.MemStats(thresh, *refrate)
 	// Set its denied handler
