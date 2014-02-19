@@ -28,7 +28,7 @@ func (ms *mapStore) Incr(key string, window time.Duration) (int, int, error) {
 	}
 	ms.cnt[key]++
 	ts := ms.ts[key]
-	return ms.cnt[key], GetRemainingSeconds(ts, window), nil
+	return ms.cnt[key], RemainingSeconds(ts, window), nil
 }
 func (ms *mapStore) Reset(key string, win time.Duration) error {
 	ms.cnt[key] = 1
