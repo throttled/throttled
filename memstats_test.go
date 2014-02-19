@@ -10,6 +10,9 @@ import (
 )
 
 func TestMemStats(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	cases := []struct {
 		n     int
 		c     int

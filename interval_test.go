@@ -8,6 +8,9 @@ import (
 )
 
 func TestInterval(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	cases := []struct {
 		n      int
 		c      int
@@ -42,6 +45,9 @@ func TestInterval(t *testing.T) {
 }
 
 func TestIntervalVary(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
 	cases := []struct {
 		n      int
 		c      int
