@@ -39,6 +39,13 @@ func TestVaryBy(t *testing.T) {
 			&http.Request{Header: http.Header{"Cookie": []string{ck.String()}}},
 			"test\n",
 		},
+		6: {
+			&VaryBy{Cookies: []string{"ssn"}, RemoteAddr: true, Custom: func(r *http.Request) string {
+				return "blah"
+			}},
+			&http.Request{Header: http.Header{"Cookie": []string{ck.String()}}},
+			"blah",
+		},
 	}
 	for i, c := range cases {
 		got := c.vb.Key(c.r)

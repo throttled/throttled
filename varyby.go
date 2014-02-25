@@ -30,6 +30,11 @@ type VaryBy struct {
 	// Use this separator string to concatenate the various criteria of the VaryBy struct.
 	// Defaults to a newline character if empty (\n).
 	Separator string
+
+	// Custom specifies the custom-generated key to use for this request.
+	// If not nil, the value returned by this function is used instead of any
+	// VaryBy criteria.
+	Custom func(r *http.Request) string
 }
 
 // Key returns the key for this request based on the criteria defined by the VaryBy struct.
@@ -38,6 +43,10 @@ func (vb *VaryBy) Key(r *http.Request) string {
 
 	if vb == nil {
 		return "" // Special case for no vary-by option
+	}
+	if vb.Custom != nil {
+		// A custom key generator is specified
+		return vb.Custom(r)
 	}
 	sep := vb.Separator
 	if sep == "" {
