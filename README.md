@@ -9,7 +9,7 @@ access to HTTP handlers.
 
 `go get github.com/PuerkitoBio/throttled/...`
 
-## Inverval
+## Interval
 
 The Interval function creates a throttler that allows requests to go through at
 a controlled, constant interval. The interval may be applied to all requests
