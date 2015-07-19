@@ -28,16 +28,20 @@ func main() {
 	var h http.Handler
 	var ok, ko int
 	var mu sync.Mutex
-	var st throttled.Store
+	var st store.Store
+	var err error
 
 	// Keep the start time to print since-time
 	start := time.Now()
 	// Create the rate-limit store
 	switch *storeType {
 	case "mem":
-		st = store.NewMemStore(0)
+		st, err = store.NewMemStore(0)
+		if err != nil {
+			panic(err)
+		}
 	case "redis":
-		st = store.NewRedisStore(setupRedis(), "throttled:", 0)
+		st = store.NewRedisStore(setupRedis(), "throttled:", 0, *window)
 	default:
 		log.Fatalf("unsupported store: %s", *storeType)
 	}

@@ -2,17 +2,16 @@ package store
 
 import (
 	"sync"
-	"time"
+	"sync/atomic"
 
-	"github.com/PuerkitoBio/throttled"
-	"github.com/golang/groupcache/lru"
+	"github.com/hashicorp/golang-lru"
 )
 
 // memStore implements an in-memory Store.
 type memStore struct {
-	sync.Mutex
+	sync.RWMutex
 	keys *lru.Cache
-	m    map[string]*counter
+	m    map[string]*int64
 }
 
 // NewMemStore creates a new MemStore. If maxKeys > 0, the number of different keys
@@ -28,63 +27,93 @@ type memStore struct {
 // among multiple instances of the web server, use a database- or key-value-based
 // store.
 //
-func NewMemStore(maxKeys int) throttled.Store {
+func NewMemStore(maxKeys int) (Store, error) {
 	var m *memStore
+
 	if maxKeys > 0 {
+		keys, err := lru.New(maxKeys)
+		if err != nil {
+			return nil, err
+		}
+
 		m = &memStore{
-			keys: lru.New(maxKeys),
+			keys: keys,
 		}
 	} else {
 		m = &memStore{
-			m: make(map[string]*counter),
+			m: make(map[string]*int64),
 		}
 	}
-	return m
+	return m, nil
 }
 
-// A counter represents a single entry in the MemStore.
-type counter struct {
-	n  int
-	ts time.Time
+func (ms *memStore) Get(key string) (int64, error) {
+	valP, ok := ms.get(key, false)
+
+	if !ok {
+		return 0, ErrNoSuchKey
+	}
+
+	return atomic.LoadInt64(valP), nil
 }
 
-// Incr increments the counter for the specified key. It returns the new
-// count value and the remaining number of seconds, or an error.
-func (ms *memStore) Incr(key string, window time.Duration) (int, int, error) {
+func (ms *memStore) SetNX(key string, value int64) (bool, error) {
+	_, ok := ms.get(key, false)
+
+	if ok {
+		return false, nil
+	}
+
 	ms.Lock()
 	defer ms.Unlock()
-	var c *counter
+
+	_, ok = ms.get(key, true)
+
+	if ok {
+		return false, nil
+	}
+
+	// Store a pointer to a new instance so that the caller
+	// can't mutate the value after setting
+	v := value
+
 	if ms.keys != nil {
-		v, _ := ms.keys.Get(key)
-		if v != nil {
-			c = v.(*counter)
-		}
+		ms.keys.Add(key, &v)
 	} else {
-		c = ms.m[key]
+		ms.m[key] = &v
 	}
-	if c == nil {
-		c = &counter{0, time.Now().UTC()}
-	}
-	c.n++
-	if ms.keys != nil {
-		ms.keys.Add(key, c)
-	} else {
-		ms.m[key] = c
-	}
-	return c.n, throttled.RemainingSeconds(c.ts, window), nil
+
+	return true, nil
 }
 
-// Reset resets the counter for the specified key. It sets the count
-// to 1 and initializes the timestamp with the current time, in UTC.
-// It returns an error if the operation fails.
-func (ms *memStore) Reset(key string, win time.Duration) error {
-	ms.Lock()
-	defer ms.Unlock()
-	c := &counter{1, time.Now().UTC()}
-	if ms.keys != nil {
-		ms.keys.Add(key, c)
-	} else {
-		ms.m[key] = c
+func (ms *memStore) CompareAndSwap(key string, old, new int64) (bool, error) {
+	valP, ok := ms.get(key, false)
+
+	if !ok {
+		return false, ErrNoSuchKey
 	}
-	return nil
+
+	return atomic.CompareAndSwapInt64(valP, old, new), nil
+}
+
+func (ms *memStore) get(key string, locked bool) (*int64, bool) {
+	var valP *int64
+	var ok bool
+
+	if ms.keys != nil {
+		var valI interface{}
+
+		valI, ok = ms.keys.Get(key)
+		if ok {
+			valP = valI.(*int64)
+		}
+	} else {
+		if !locked {
+			ms.RLock()
+			defer ms.RUnlock()
+		}
+		valP, ok = ms.m[key]
+	}
+
+	return valP, ok
 }
