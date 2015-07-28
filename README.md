@@ -1,13 +1,13 @@
-# Throttled
-
-[![build status](https://secure.travis-ci.org/PuerkitoBio/throttled.png)](http://travis-ci.org/PuerkitoBio/throttled)
+# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](http://travis-ci.org/throttled/throttled)
 
 Package throttled implements different throttling strategies for controlling
 access to HTTP handlers.
 
+*As of July 27, 2015, the package is now located under its own GitHub organization, please adjust your imports to `github.com/throttled/throttled`.*
+
 ## Installation
 
-`go get github.com/PuerkitoBio/throttled/...`
+`go get github.com/throttled/throttled/...`
 
 ## Interval
 
@@ -73,8 +73,8 @@ Finally, many examples are provided in the /examples sub-folder of the repositor
 
 ## License
 
-The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers.
+The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and Contributors.
 
-[doc]: http://godoc.org/github.com/PuerkitoBio/throttled
+[doc]: http://godoc.org/github.com/throttled/throttled
 [blog]: http://0value.com/throttled--guardian-of-the-web-server
 [bsd]: http://opensource.org/licenses/BSD-3-Clause

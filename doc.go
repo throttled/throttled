@@ -3,7 +3,7 @@
 //
 // Installation
 //
-// go get github.com/PuerkitoBio/throttled/...
+// go get github.com/throttled/throttled/...
 //
 // Inverval
 //
@@ -62,7 +62,7 @@
 // Documentation
 //
 // The API documentation is available as usual on godoc.org:
-//    http://godoc.org/github.com/PuerkitoBio/throttled
+//    http://godoc.org/github.com/throttled/throttled
 //
 // There is also a blog post explaining the package's usage on 0value.com:
 //    http://0value.com/throttled--guardian-of-the-web-server
@@ -71,7 +71,7 @@
 //
 // License
 //
-// The BSD 3-clause license. Copyright (c) 2014 Martin Angers.
+// The BSD 3-clause license. Copyright (c) 2014 Martin Angers and Contributors.
 //    http://opensource.org/licenses/BSD-3-Clause
 //
-package throttled
+package throttled // import "github.com/throttled/throttled"

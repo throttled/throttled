@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PuerkitoBio/throttled"
 	"github.com/golang/groupcache/lru"
+	"github.com/throttled/throttled"
 )
 
 // memStore implements an in-memory Store.

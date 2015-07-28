@@ -3,8 +3,8 @@ package store
 import (
 	"time"
 
-	"github.com/PuerkitoBio/throttled"
 	"github.com/garyburd/redigo/redis"
+	"github.com/throttled/throttled"
 )
 
 // redisStore implements a Redis-based store.

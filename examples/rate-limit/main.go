@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PuerkitoBio/throttled"
-	"github.com/PuerkitoBio/throttled/store"
 	"github.com/garyburd/redigo/redis"
+	"github.com/throttled/throttled"
+	"github.com/throttled/throttled/store"
 )
 
 var (

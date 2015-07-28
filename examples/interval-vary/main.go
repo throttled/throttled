@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PuerkitoBio/throttled"
+	"github.com/throttled/throttled"
 )
 
 var (
