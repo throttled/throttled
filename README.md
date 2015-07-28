@@ -1,4 +1,4 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](http://travis-ci.org/throttled/throttled)
+# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](http://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.png)](http://godoc.org/github.com/throttled/throttled)
 
 Package throttled implements different throttling strategies for controlling
 access to HTTP handlers.
