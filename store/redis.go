@@ -1,85 +1,190 @@
 package store
 
 import (
+	"strings"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
-	"github.com/throttled/throttled"
 )
 
-// redisStore implements a Redis-based store.
+const (
+	redisCASMissingKey = "key does not exist"
+	redisCASScript     = `
+local v = redis.call('get', KEYS[1])
+if v == false then
+  return redis.error_reply("key does not exist")
+end
+if v ~= ARGV[1] then
+  return 0
+end
+if ARGV[3] ~= "0" then
+  redis.call('setex', KEYS[1], ARGV[3], ARGV[2])
+else
+  redis.call('set', KEYS[1], ARGV[2])
+end
+return 1
+`
+)
+
+// RedisStore implements a Redis-based store.
 type redisStore struct {
-	pool   *redis.Pool
-	prefix string
-	db     int
+	pool         *redis.Pool
+	prefix       string
+	db           int
+	ttl          time.Duration
+	supportsEval bool
 }
 
 // NewRedisStore creates a new Redis-based store, using the provided pool to get its
 // connections. The keys will have the specified keyPrefix, which may be an empty string,
-// and the database index specified by db will be selected to store the keys.
-//
-func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) throttled.Store {
+// and the database index specified by db will be selected to store the keys. Any
+// updating operations will reset the key TTL to the provided value rounded down to
+// the nearest second.
+func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) GCRAStore {
 	return &redisStore{
-		pool:   pool,
-		prefix: keyPrefix,
-		db:     db,
+		pool:         pool,
+		prefix:       keyPrefix,
+		db:           db,
+		supportsEval: true,
 	}
 }
 
-// Incr increments the specified key. If the key did not exist, it sets it to 1
-// and sets it to expire after the number of seconds specified by window.
-//
-// It returns the new count value and the number of remaining seconds, or an error
-// if the operation fails.
-func (r *redisStore) Incr(key string, window time.Duration) (int, int, error) {
-	conn := r.pool.Get()
-	defer conn.Close()
-	if err := selectDB(r.db, conn); err != nil {
-		return 0, 0, err
-	}
-	// Atomically increment and read the TTL.
-	conn.Send("MULTI")
-	conn.Send("INCR", r.prefix+key)
-	conn.Send("TTL", r.prefix+key)
-	vals, err := redis.Values(conn.Do("EXEC"))
+// Get returns the value of the key if it is in the Store or -1 if it does
+// not exist.
+func (r *redisStore) Get(key string) (int64, error) {
+	key = r.prefix + key
+
+	conn, err := r.getConn()
 	if err != nil {
-		conn.Do("DISCARD")
-		return 0, 0, err
+		return 0, err
 	}
-	var cnt, ttl int
-	if _, err = redis.Scan(vals, &cnt, &ttl); err != nil {
-		return 0, 0, err
+	defer conn.Close()
+
+	v, err := redis.Int64(conn.Do("GET", key))
+	if err == redis.ErrNil {
+		return -1, nil
+	} else if err != nil {
+		return 0, err
 	}
-	// If there was no TTL set, then this is a newly created key (INCR creates the key
-	// if it didn't exist), so set it to expire.
-	if ttl == -1 {
-		ttl = int(window.Seconds())
-		_, err = conn.Do("EXPIRE", r.prefix+key, ttl)
-		if err != nil {
-			return 0, 0, err
+
+	return v, nil
+}
+
+// SetIfNotExists sets the value of key only if it is not already set in the Store
+// it returns whether a new value was set.
+func (r *redisStore) SetIfNotExists(key string, value int64, ttl time.Duration) (bool, error) {
+	key = r.prefix + key
+
+	conn, err := r.getConn()
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	v, err := redis.Int64(conn.Do("SETNX", key, value))
+	if err != nil {
+		return false, err
+	}
+
+	updated := v == 1
+
+	if ttl > 0 {
+		if _, err := conn.Do("EXPIRE", key, int(r.ttl.Seconds())); err != nil {
+			return updated, err
 		}
 	}
-	return cnt, ttl, nil
+
+	return updated, nil
 }
 
-// Reset sets the value of the key to 1, and resets its time window.
-func (r *redisStore) Reset(key string, window time.Duration) error {
-	conn := r.pool.Get()
-	defer conn.Close()
-	if err := selectDB(r.db, conn); err != nil {
-		return err
+// CompareAndSwap atomically compares the value at key to the old value.
+// If it matches, it sets it to the new value and returns true. Otherwise,
+// it returns false. If the key does not exist in the store, it returns
+// false with no error.
+func (r *redisStore) CompareAndSwap(key string, old, new int64, ttl time.Duration) (bool, error) {
+	key = r.prefix + key
+	conn, err := r.getConn()
+	if err != nil {
+		return false, err
 	}
-	_, err := redis.String(conn.Do("SET", r.prefix+key, "1", "EX", int(window.Seconds()), "NX"))
-	return err
+	defer conn.Close()
+
+	if r.supportsEval {
+		swapped, err := r.compareAndSwapWithEval(conn, key, old, new, ttl)
+		if err == nil {
+			return swapped, nil
+		}
+
+		// If failure is due to EVAL being unsupported, note that and
+		// retry using WATCH
+		if strings.Contains(err.Error(), "unknown command") {
+			r.supportsEval = false
+		} else {
+			return false, err
+		}
+	}
+
+	swapped, err := r.compareAndSwapWithWatch(conn, key, old, new, ttl)
+	if err != nil {
+		return false, err
+	}
+
+	return swapped, nil
+}
+
+func (r *redisStore) compareAndSwapWithWatch(conn redis.Conn, key string, old, new int64, ttl time.Duration) (bool, error) {
+	conn.Send("WATCH", key)
+	conn.Send("GET", key)
+	conn.Flush()
+	conn.Receive()
+
+	v, err := redis.Int64(conn.Receive())
+	if err == redis.ErrNil {
+		return false, nil
+	}
+	if v != old {
+		return false, nil
+	}
+
+	conn.Send("MULTI")
+	if ttl > 0 {
+		conn.Send("SETEX", key, int(ttl.Seconds()), new)
+	} else {
+		conn.Send("SET", key, new)
+	}
+	if _, err := conn.Do("EXEC"); err == redis.ErrNil {
+		return false, nil
+	} else if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+func (r *redisStore) compareAndSwapWithEval(conn redis.Conn, key string, old, new int64, ttl time.Duration) (bool, error) {
+	swapped, err := redis.Bool(conn.Do("EVAL", redisCASScript, 1, key, old, new, int(ttl.Seconds())))
+	if err != nil {
+		if strings.Contains(err.Error(), redisCASMissingKey) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return swapped, nil
 }
 
 // Select the specified database index.
-func selectDB(db int, conn redis.Conn) error {
+func (r *redisStore) getConn() (redis.Conn, error) {
+	conn := r.pool.Get()
+
 	// Select the specified database
-	if db > 0 {
-		if _, err := redis.String(conn.Do("SELECT", db)); err != nil {
-			return err
+	if r.db > 0 {
+		if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
+			conn.Close()
+			return nil, err
 		}
 	}
-	return nil
+
+	return conn, nil
 }

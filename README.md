@@ -1,80 +1,48 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](http://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.png)](http://godoc.org/github.com/throttled/throttled)
+# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v0?status.png)](https://godoc.org/gopkg.in/throttled/throttled.v0)
 
-Package throttled implements different throttling strategies for controlling
-access to HTTP handlers.
-
-*As of July 27, 2015, the package is now located under its own GitHub organization, please adjust your imports to `github.com/throttled/throttled`.*
+Package throttled implements various strategies for limiting access to resources,
+such as for rate limiting HTTP requests.
 
 ## Installation
 
-`go get github.com/throttled/throttled/...`
+`go get gopkg.in/throttled/throttled.v0`
 
-## Interval
-
-The Interval function creates a throttler that allows requests to go through at
-a controlled, constant interval. The interval may be applied to all requests
-(vary argument == nil) or independently based on vary-by criteria.
-
-For example:
-
-    th := throttled.Interval(throttled.PerSec(10), 100, &throttled.VaryBy{Path: true}, 50)
-    h := th.Throttle(myHandler)
-    http.ListenAndServe(":9000", h)
-
-Creates a throttler that will allow a request each 100ms (10 requests per second), with
-a buffer of 100 exceeding requests before dropping requests with a status code 429 (by
-default, configurable using th.DeniedHandler or the package-global DefaultDeniedHandler
-variable). Different paths will be throttled independently, so that /path_a and /path_b
-both can serve 10 requests per second. The last argument, 50, indicates the maximum number
-of keys that the throttler will keep in memory.
-
-## MemStats
-
-The MemStats function creates a throttler that allows requests to go through only if
-the memory statistics of the current process are below specified thresholds.
-
-For example:
-
-    th := throttled.MemStats(throttled.MemThresholds(&runtime.MemStats{NumGC: 10}, 10*time.Millisecond)
-    h := th.Throttle(myHandler)
-    http.ListenAndServe(":9000", h)
-
-Creates a throttler that will allow requests to go through until the number of garbage
-collections reaches the initial number + 10 (the MemThresholds function creates absolute
-memory stats thresholds from offsets). The second argument, 10ms, indicates the refresh
-rate of the memory stats.
-
-## RateLimit
-
-The RateLimit function creates a throttler that allows a certain number of requests in
-a given time window, as is often implemented in public RESTful APIs.
-
-For example:
-
-    th := throttled.RateLimit(throttled.PerMin(30), &throttled.VaryBy{RemoteAddr: true}, store.NewMemStore(1000))
-    h := th.Throttle(myHandler)
-    http.ListenAndServe(":9000", h)
-
-Creates a throttler that will limit requests to 30 per minute, based on the remote address
-of the client, and will store the counter and remaining time of the current window in the
-provided memory store, limiting the number of keys to keep in memory to 1000. The store
-sub-package also provides a Redis-based Store implementations.
-
-The RateLimit throttler sets the expected X-RateLimit-* headers on the response, and
-also sets a Retry-After header when the limit is exceeded.
+As of July 27, 2015, the package is located under its own Github organization.
+Please adjust your imports to `gopkg.in/throttled/throttled.v0`.
 
 ## Documentation
 
-The API documentation is available as usual on [godoc.org][doc].
+API documentation is available on [godoc.org][doc]. The following example
+demonstrates the usage of HTTPLimiter for rate-limiting
+access to an http.Handler to 5 requests per path per minute.
 
-There is also a [blog post explaining the package's usage on 0value.com][blog].
+	st := store.NewMemStore(256)
+	lim := throttled.PerMin(5)
+	rateLim, err := throttled.NewGCRARateLimiter(st, lim)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-Finally, many examples are provided in the /examples sub-folder of the repository.
+	httpLim := throttled.HTTPLimiter{
+		Limiter: rateLim,
+		VaryBy:  &throttled.VaryBy{Path: true},
+	}
+
+	http.ListenAndServe(":8080", httpLim.Limit(myHandler))
+
+## Versioning
+
+throttled uses gopkg.in for semantic versioning. 
+
+The 0.x release series is compatible with the original, unversioned library written
+by [Martin Angers][puerkitobio]. There is a [blog post explaining that version's usage on 0value.com][blog].
 
 ## License
 
 The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and Contributors.
 
-[doc]: http://godoc.org/github.com/throttled/throttled
 [blog]: http://0value.com/throttled--guardian-of-the-web-server
-[bsd]: http://opensource.org/licenses/BSD-3-Clause
+[bsd]: https://opensource.org/licenses/BSD-3-Clause
+[doc]: https://godoc.org/gopkg.in/throttled/throttled.v0
+[examples]: https://github.com/throttled/throttled/tree/master/examples
+[puerkitobio]: https://github.com/puerkitobio/

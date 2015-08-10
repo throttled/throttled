@@ -1,116 +1,91 @@
 package throttled
 
 import (
-	"math"
-	"net/http"
-	"strconv"
 	"time"
+
+	"gopkg.in/throttled/throttled.v0/store"
 )
 
-// Static check to ensure that rateLimiter implements Limiter.
-var _ Limiter = (*rateLimiter)(nil)
+// A RateLimitResult is returned by a Limiter to provide additional context
+// about the state of rate limiting at the time of the query. This state can
+// be used, for example, to communicate information to the client via HTTP headers.
+// Any function may return a negative value to indicate that the particular
+// attribute is not relevant to the implementation or state.
+type RateLimitResult interface {
+	LimitResult
 
-// RateLimit creates a throttler that limits the number of requests allowed
-// in a certain time window defined by the Quota q. The q parameter specifies
-// the requests per time window, and it is silently set to at least 1 request
-// and at least a 1 second window if it is less than that. The time window
-// starts when the first request is made outside an existing window. Fractions
-// of seconds are not supported, they are truncated.
-//
-// The vary parameter indicates what criteria should be used to group requests
-// for which the limit must be applied (ex.: rate limit based on the remote address).
-// See varyby.go for the various options.
-//
-// The specified store is used to keep track of the request count and the
-// time remaining in the window. The throttled package comes with some stores
-// in the throttled/store package. Custom stores can be created too, by implementing
-// the Store interface.
-//
-// Requests that bust the rate limit are denied access and go through the denied handler,
-// which may be specified on the Throttler and that defaults to the package-global
-// variable DefaultDeniedHandler.
-//
-// The rate limit throttler sets the following headers on the response:
-//
-//    X-RateLimit-Limit : quota
-//    X-RateLimit-Remaining : number of requests remaining in the current window
-//    X-RateLimit-Reset : seconds before a new window
-//
-// Additionally, if the request was denied access, the following header is added:
-//
-//    Retry-After : seconds before the caller should retry
-//
-func RateLimit(q Quota, vary *VaryBy, store Store) *Throttler {
-	// Extract requests and window
-	reqs, win := q.Quota()
+	// Limit returns the maximum number of requests that could be permitted
+	// instantaneously per key starting from an empty state. For example,
+	// if a rate limiter allows 10 requests per second, Limit would always
+	// return 10.
+	Limit() int
 
-	// Create and return the throttler
-	return &Throttler{
-		limiter: &rateLimiter{
-			reqs:   reqs,
-			window: win,
-			vary:   vary,
-			store:  store,
-		},
-	}
+	// Remaining returns the maximum number of requests that could be permitted
+	// instantaneously per key given the current state. For example, if a rate
+	// limiter allows 10 requests per second and has already received 6 requests
+	// for a given key this second, Remaining would return 4.
+	Remaining() int
+
+	// Reset returns the time until the rate limiter returns to its initial
+	// state for a given key. For example, if a rate limiter manages requests per second
+	// per second and received one request 200ms ago, Reset would return 800ms.
+	// This should be the earliest time when Limit and Remaining are equal.
+	Reset() time.Duration
+
+	// RetryAfter returns the time until the next request will be permitted.
+	// It should only be set if the current request was limited.
+	RetryAfter() time.Duration
 }
 
-// The rate limiter implements limiting the request to a certain quota
-// based on the vary-by criteria. State is saved in the store.
-type rateLimiter struct {
-	reqs   int
-	window time.Duration
-	vary   *VaryBy
-	store  Store
+type rateLimitResult struct {
+	limited           bool
+	limit, remaining  int
+	reset, retryAfter time.Duration
 }
 
-// Start initializes the limiter for execution.
-func (r *rateLimiter) Start() {
-	if r.reqs < 1 {
-		r.reqs = 1
-	}
-	if r.window < time.Second {
-		r.window = time.Second
-	}
+func (r *rateLimitResult) Limited() bool             { return r.limited }
+func (r *rateLimitResult) Limit() int                { return r.limit }
+func (r *rateLimitResult) Remaining() int            { return r.remaining }
+func (r *rateLimitResult) Reset() time.Duration      { return r.reset }
+func (r *rateLimitResult) RetryAfter() time.Duration { return r.retryAfter }
+
+// RateQuota describes the number of requests allowed per time period.
+// The Count also represents the maximum number of requests permitted in
+// a burst. For example, a quota of 60 requests every minute would allow either
+// a continuous stream of 1 request every second or a burst of 60 requests at the
+// same time once a minute.
+type RateQuota struct {
+	Count  int
+	Period time.Duration
 }
 
-// Limit is called for each request to the throttled handler. It checks if
-// the request can go through and signals it via the returned channel.
-// It returns an error if the operation fails.
-func (r *rateLimiter) Limit(w http.ResponseWriter, req *http.Request) (<-chan bool, error) {
-	// Create return channel and initialize
-	ch := make(chan bool, 1)
-	ok := true
-	key := r.vary.Key(req)
+// PerSec represents a number of requests per second.
+func PerSec(n int) RateQuota { return RateQuota{n, time.Second} }
 
-	// Get the current count and remaining seconds
-	cnt, secs, err := r.store.Incr(key, r.window)
-	// Handle the possible situations: error, begin new window, or increment current window.
-	switch {
-	case err != nil && err != ErrNoSuchKey:
-		// An unexpected error occurred
-		return nil, err
-	case err == ErrNoSuchKey || secs <= 0:
-		// Reset counter
-		if err := r.store.Reset(key, r.window); err != nil {
-			return nil, err
-		}
-		cnt = 1
-		secs = int(r.window.Seconds())
-	default:
-		// If the limit is reached, deny access
-		if cnt > r.reqs {
-			ok = false
-		}
-	}
-	// Set rate-limit headers
-	w.Header().Add("X-RateLimit-Limit", strconv.Itoa(r.reqs))
-	w.Header().Add("X-RateLimit-Remaining", strconv.Itoa(int(math.Max(float64(r.reqs-cnt), 0))))
-	w.Header().Add("X-RateLimit-Reset", strconv.Itoa(secs))
-	if !ok {
-		w.Header().Add("Retry-After", strconv.Itoa(secs))
-	}
-	// Send response via the return channel
-	ch <- ok
-	return ch, nil
+// PerMin represents a number of requests per minute.
+func PerMin(n int) RateQuota { return RateQuota{n, time.Minute} }
+
+// PerHour represents a number of requests per hour.
+func PerHour(n int) RateQuota { return RateQuota{n, time.Hour} }
+
+// PerDay represents a number of requests per day.
+func PerDay(n int) RateQuota { return RateQuota{n, 24 * time.Hour} }
+
+type gcraLimiter struct {
+}
+
+// NewGCRARateLimiter creates a Limiter that uses the generic cell-rate
+// algorithm. Calls to `Limit` return a `RateLimitResult`.
+//
+// quota.Count defines the maximum number of requests permitted in an
+// instantaneous burst and quota.Count / quota.Period defines the maximum
+// sustained rate. For example, PerMin(60) permits 60 requests instantly per key
+// followed by one request per second indefinitely whereas PerSec(1) only permits
+// one request per second with no tolerance for bursts.
+func NewGCRARateLimiter(st store.GCRAStore, quota RateQuota) (Limiter, error) {
+	return &gcraLimiter{}, nil
+}
+
+func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
+	return &rateLimitResult{}, nil
 }
