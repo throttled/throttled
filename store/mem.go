@@ -27,13 +27,17 @@ type memStore struct {
 // among multiple instances of the web server, use a database- or key-value-based
 // store.
 //
-func NewMemStore(maxKeys int) (GCRAStore, error) {
+func NewMemStore(maxKeys int) GCRAStore {
 	var m *memStore
 
 	if maxKeys > 0 {
 		keys, err := lru.New(maxKeys)
 		if err != nil {
-			return nil, err
+			// The interface for `NewMemStore` is part of the public interface so
+			// adding an error return would be a breaking change so we panic instead.
+			// As of this writing, `lru.New` can only return an error if you pass
+			// maxKeys <= 0 so this should never occur.
+			panic(err)
 		}
 
 		m = &memStore{
@@ -44,7 +48,7 @@ func NewMemStore(maxKeys int) (GCRAStore, error) {
 			m: make(map[string]*int64),
 		}
 	}
-	return m, nil
+	return m
 }
 
 func (ms *memStore) Get(key string) (int64, error) {

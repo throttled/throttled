@@ -58,3 +58,8 @@ func RateLimit(q Quota, vary *VaryBy, store store.GCRAStore) *Throttler {
 		},
 	}
 }
+
+// DEPRECATED. Store is an alias for store.GCRAStore
+type Store interface {
+	store.GCRAStore
+}
