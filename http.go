@@ -74,14 +74,12 @@ func (t *HTTPLimiter) Limit(h http.Handler) http.Handler {
 
 		lr, err := t.Limiter.Limit(k)
 
-		// TODO: Is this the right error default?
 		if err != nil {
-			t.Error(w, r, err)
-			return
-		}
-
-		if !lr.Limited() {
-			h.ServeHTTP(w, r)
+			e := t.Error
+			if e == nil {
+				e = DefaultError
+			}
+			e(w, r, err)
 			return
 		}
 
@@ -89,11 +87,16 @@ func (t *HTTPLimiter) Limit(h http.Handler) http.Handler {
 			setRateLimitHeaders(w, rlr)
 		}
 
-		if t.DeniedHandler != nil {
-			t.DeniedHandler.ServeHTTP(w, r)
-		} else {
-			DefaultDeniedHandler.ServeHTTP(w, r)
+		if !lr.Limited() {
+			h.ServeHTTP(w, r)
+			return
 		}
+
+		dh := t.DeniedHandler
+		if dh == nil {
+			dh = DefaultDeniedHandler
+		}
+		dh.ServeHTTP(w, r)
 	})
 }
 

@@ -30,29 +30,29 @@ func TestDeprecatedUsage(t *testing.T) {
 		code    int
 		headers map[string]string
 	}{
-		{"/foo", 200, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "1", "X-Ratelimit-Reset": "59"}},
-		{"/foo", 200, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "0", "X-Ratelimit-Reset": "59"}},
-		{"/foo", 429, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "0", "X-Ratelimit-Reset": "59", "Retry-After": "59"}},
-		{"/bar", 200, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "1", "X-Ratelimit-Reset": "59"}},
+		{"/foo", 200, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "1", "X-Ratelimit-Reset": "30"}},
+		{"/foo", 200, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "0", "X-Ratelimit-Reset": "60"}},
+		{"/foo", 429, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "0", "X-Ratelimit-Reset": "60", "Retry-After": "30"}},
+		{"/bar", 200, map[string]string{"X-Ratelimit-Limit": "2", "X-Ratelimit-Remaining": "1", "X-Ratelimit-Reset": "30"}},
 	}
 
-	for i, tc := range cases {
-		req, err := http.NewRequest("GET", tc.path, nil)
+	for i, c := range cases {
+		req, err := http.NewRequest("GET", c.path, nil)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		rr := httptest.NewRecorder()
 		handler.ServeHTTP(rr, req)
-		if have, want := rr.Code, tc.code; have != want {
+		if have, want := rr.Code, c.code; have != want {
 			t.Errorf("Expected request %d at %s to return %d but got %d",
-				i, tc.path, want, have)
+				i, c.path, want, have)
 		}
 
-		for name, want := range tc.headers {
+		for name, want := range c.headers {
 			if have := rr.HeaderMap.Get(name); have != want {
 				t.Errorf("Expected request %d at %s to have header '%s: %s' but got '%s'",
-					i, tc.path, name, want, have)
+					i, c.path, name, want, have)
 			}
 		}
 	}

@@ -1,0 +1,3 @@
+test:
+	go test ./...
+	go test -race -bench=. -cpu=1,2,4

@@ -31,7 +31,6 @@ type redisStore struct {
 	pool         *redis.Pool
 	prefix       string
 	db           int
-	ttl          time.Duration
 	supportsEval bool
 }
 
@@ -51,23 +50,39 @@ func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) GCRAStore {
 
 // Get returns the value of the key if it is in the Store or -1 if it does
 // not exist.
-func (r *redisStore) Get(key string) (int64, error) {
+func (r *redisStore) GetWithTime(key string) (int64, time.Time, error) {
+	var now time.Time
+
 	key = r.prefix + key
 
 	conn, err := r.getConn()
 	if err != nil {
-		return 0, err
+		return 0, now, err
 	}
 	defer conn.Close()
 
-	v, err := redis.Int64(conn.Do("GET", key))
-	if err == redis.ErrNil {
-		return -1, nil
-	} else if err != nil {
-		return 0, err
+	conn.Send("TIME")
+	conn.Send("GET", key)
+	conn.Flush()
+	timeReply, err := redis.Values(conn.Receive())
+	if err != nil {
+		return 0, now, err
 	}
 
-	return v, nil
+	var s, ms int64
+	if _, err := redis.Scan(timeReply, &s, &ms); err != nil {
+		return 0, now, err
+	}
+	now = time.Unix(s, ms*int64(time.Millisecond))
+
+	v, err := redis.Int64(conn.Receive())
+	if err == redis.ErrNil {
+		return -1, now, nil
+	} else if err != nil {
+		return 0, now, err
+	}
+
+	return v, now, nil
 }
 
 // SetIfNotExists sets the value of key only if it is not already set in the Store
@@ -88,8 +103,8 @@ func (r *redisStore) SetIfNotExists(key string, value int64, ttl time.Duration) 
 
 	updated := v == 1
 
-	if ttl > 0 {
-		if _, err := conn.Do("EXPIRE", key, int(r.ttl.Seconds())); err != nil {
+	if ttl >= time.Second {
+		if _, err := conn.Do("EXPIRE", key, int(ttl.Seconds())); err != nil {
 			return updated, err
 		}
 	}

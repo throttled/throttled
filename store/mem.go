@@ -51,14 +51,15 @@ func NewMemStore(maxKeys int) GCRAStore {
 	return m
 }
 
-func (ms *memStore) Get(key string) (int64, error) {
+func (ms *memStore) GetWithTime(key string) (int64, time.Time, error) {
+	now := time.Now()
 	valP, ok := ms.get(key, false)
 
 	if !ok {
-		return -1, nil
+		return -1, now, nil
 	}
 
-	return atomic.LoadInt64(valP), nil
+	return atomic.LoadInt64(valP), now, nil
 }
 
 func (ms *memStore) SetIfNotExists(key string, value int64, _ time.Duration) (bool, error) {
