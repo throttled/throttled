@@ -1,4 +1,4 @@
-package store
+package store_test
 
 import (
 	"math/rand"
@@ -6,9 +6,11 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"gopkg.in/throttled/throttled.v0/store"
 )
 
-func storeTest(t *testing.T, st GCRAStore) {
+func storeTest(t *testing.T, st store.GCRAStore) {
 	// GetWithTime a missing key
 	if have, _, err := st.GetWithTime("foo"); err != nil {
 		t.Fatal(err)
@@ -19,7 +21,7 @@ func storeTest(t *testing.T, st GCRAStore) {
 	// SetIfNotExists on a new key
 	want := int64(1)
 
-	if set, err := st.SetIfNotExists("foo", want, 0); err != nil {
+	if set, err := st.SetIfNotExistsWithTTL("foo", want, 0); err != nil {
 		t.Fatal(err)
 	} else if !set {
 		t.Errorf("expected SetIfNotExists on an empty key to succeed")
@@ -34,7 +36,7 @@ func storeTest(t *testing.T, st GCRAStore) {
 	}
 
 	// SetIfNotExists on an existing key
-	if set, err := st.SetIfNotExists("foo", 123, 0); err != nil {
+	if set, err := st.SetIfNotExistsWithTTL("foo", 123, 0); err != nil {
 		t.Fatal(err)
 	} else if set {
 		t.Errorf("expected SetIfNotExists on an existing key to fail")
@@ -47,16 +49,14 @@ func storeTest(t *testing.T, st GCRAStore) {
 	}
 
 	// SetIfNotExists on a different key
-
-	if set, err := st.SetIfNotExists("bar", 456, 0); err != nil {
+	if set, err := st.SetIfNotExistsWithTTL("bar", 456, 0); err != nil {
 		t.Fatal(err)
 	} else if !set {
 		t.Errorf("expected SetIfNotExists on an empty key to succeed")
 	}
 
 	// Returns the false on a missing key
-
-	if swapped, err := st.CompareAndSwap("baz", 1, 2, 0); err != nil {
+	if swapped, err := st.CompareAndSwapWithTTL("baz", 1, 2, 0); err != nil {
 		t.Fatal(err)
 	} else if swapped {
 		t.Errorf("expected CompareAndSwap to fail on a missing key")
@@ -65,7 +65,7 @@ func storeTest(t *testing.T, st GCRAStore) {
 	// Test a successful CAS
 	want = int64(2)
 
-	if swapped, err := st.CompareAndSwap("foo", 1, want, 0); err != nil {
+	if swapped, err := st.CompareAndSwapWithTTL("foo", 1, want, 0); err != nil {
 		t.Fatal(err)
 	} else if !swapped {
 		t.Errorf("expected CompareAndSwap to succeed")
@@ -78,7 +78,7 @@ func storeTest(t *testing.T, st GCRAStore) {
 	}
 
 	// Test an unsuccessful CAS
-	if swapped, err := st.CompareAndSwap("foo", 1, 2, 0); err != nil {
+	if swapped, err := st.CompareAndSwapWithTTL("foo", 1, 2, 0); err != nil {
 		t.Fatal(err)
 	} else if swapped {
 		t.Errorf("expected CompareAndSwap to fail")
@@ -91,12 +91,12 @@ func storeTest(t *testing.T, st GCRAStore) {
 	}
 }
 
-func storeTTLTest(t *testing.T, st GCRAStore) {
+func storeTTLTest(t *testing.T, st store.GCRAStore) {
 	ttl := time.Second
 	want := int64(1)
 	key := "ttl"
 
-	if _, err := st.SetIfNotExists(key, want, ttl); err != nil {
+	if _, err := st.SetIfNotExistsWithTTL(key, want, ttl); err != nil {
 		t.Fatal(err)
 	}
 
@@ -116,7 +116,7 @@ func storeTTLTest(t *testing.T, st GCRAStore) {
 	}
 }
 
-func storeBenchmark(b *testing.B, st GCRAStore) {
+func storeBenchmark(b *testing.B, st store.GCRAStore) {
 	seed := int64(42)
 	var attempts, updates int64
 
@@ -134,14 +134,14 @@ func storeBenchmark(b *testing.B, st GCRAStore) {
 
 			v, _, err := st.GetWithTime(key)
 			if v == -1 {
-				updated, err = st.SetIfNotExists(key, gen.Int63(), 0)
+				updated, err = st.SetIfNotExistsWithTTL(key, gen.Int63(), 0)
 				if err != nil {
 					b.Error(err)
 				}
 			} else if err != nil {
 				b.Error(err)
 			} else {
-				updated, err = st.CompareAndSwap(key, v, gen.Int63(), 0)
+				updated, err = st.CompareAndSwapWithTTL(key, v, gen.Int63(), 0)
 				if err != nil {
 					b.Error(err)
 				}

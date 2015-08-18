@@ -21,18 +21,18 @@ func (ts *testStore) GetWithTime(key string) (int64, time.Time, error) {
 	return v, ts.clock, e
 }
 
-func (ts *testStore) SetIfNotExists(key string, value int64, ttl time.Duration) (bool, error) {
+func (ts *testStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
 	if ts.failUpdates {
 		return false, nil
 	}
-	return ts.store.SetIfNotExists(key, value, ttl)
+	return ts.store.SetIfNotExistsWithTTL(key, value, ttl)
 }
 
-func (ts *testStore) CompareAndSwap(key string, old, new int64, ttl time.Duration) (bool, error) {
+func (ts *testStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
 	if ts.failUpdates {
 		return false, nil
 	}
-	return ts.store.CompareAndSwap(key, old, new, ttl)
+	return ts.store.CompareAndSwapWithTTL(key, old, new, ttl)
 }
 
 func TestRateLimit(t *testing.T) {

@@ -151,7 +151,7 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 		if tatVal == -1 {
 			newTat = now.Add(g.emissionInterval)
 			ttl = newTat.Sub(now)
-			updated, err = g.store.SetIfNotExists(key, newTat.UnixNano(), ttl)
+			updated, err = g.store.SetIfNotExistsWithTTL(key, newTat.UnixNano(), ttl)
 		} else {
 			tat = time.Unix(0, tatVal)
 
@@ -169,7 +169,7 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 			}
 
 			ttl = newTat.Sub(now)
-			updated, err = g.store.CompareAndSwap(key, tat.UnixNano(), newTat.UnixNano(), ttl)
+			updated, err = g.store.CompareAndSwapWithTTL(key, tat.UnixNano(), newTat.UnixNano(), ttl)
 		}
 
 		if err != nil {

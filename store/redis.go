@@ -28,23 +28,21 @@ return 1
 
 // RedisStore implements a Redis-based store.
 type redisStore struct {
-	pool         *redis.Pool
-	prefix       string
-	db           int
-	supportsEval bool
+	pool   *redis.Pool
+	prefix string
+	db     int
 }
 
 // NewRedisStore creates a new Redis-based store, using the provided pool to get its
 // connections. The keys will have the specified keyPrefix, which may be an empty string,
 // and the database index specified by db will be selected to store the keys. Any
 // updating operations will reset the key TTL to the provided value rounded down to
-// the nearest second.
+// the nearest second. Depends on Redis 2.6+ for EVAL support.
 func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) GCRAStore {
 	return &redisStore{
-		pool:         pool,
-		prefix:       keyPrefix,
-		db:           db,
-		supportsEval: true,
+		pool:   pool,
+		prefix: keyPrefix,
+		db:     db,
 	}
 }
 
@@ -87,7 +85,7 @@ func (r *redisStore) GetWithTime(key string) (int64, time.Time, error) {
 
 // SetIfNotExists sets the value of key only if it is not already set in the Store
 // it returns whether a new value was set.
-func (r *redisStore) SetIfNotExists(key string, value int64, ttl time.Duration) (bool, error) {
+func (r *redisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 
 	conn, err := r.getConn()
@@ -116,7 +114,7 @@ func (r *redisStore) SetIfNotExists(key string, value int64, ttl time.Duration) 
 // If it matches, it sets it to the new value and returns true. Otherwise,
 // it returns false. If the key does not exist in the store, it returns
 // false with no error.
-func (r *redisStore) CompareAndSwap(key string, old, new int64, ttl time.Duration) (bool, error) {
+func (r *redisStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 	conn, err := r.getConn()
 	if err != nil {
@@ -124,59 +122,6 @@ func (r *redisStore) CompareAndSwap(key string, old, new int64, ttl time.Duratio
 	}
 	defer conn.Close()
 
-	if r.supportsEval {
-		swapped, err := r.compareAndSwapWithEval(conn, key, old, new, ttl)
-		if err == nil {
-			return swapped, nil
-		}
-
-		// If failure is due to EVAL being unsupported, note that and
-		// retry using WATCH
-		if strings.Contains(err.Error(), "unknown command") {
-			r.supportsEval = false
-		} else {
-			return false, err
-		}
-	}
-
-	swapped, err := r.compareAndSwapWithWatch(conn, key, old, new, ttl)
-	if err != nil {
-		return false, err
-	}
-
-	return swapped, nil
-}
-
-func (r *redisStore) compareAndSwapWithWatch(conn redis.Conn, key string, old, new int64, ttl time.Duration) (bool, error) {
-	conn.Send("WATCH", key)
-	conn.Send("GET", key)
-	conn.Flush()
-	conn.Receive()
-
-	v, err := redis.Int64(conn.Receive())
-	if err == redis.ErrNil {
-		return false, nil
-	}
-	if v != old {
-		return false, nil
-	}
-
-	conn.Send("MULTI")
-	if ttl > 0 {
-		conn.Send("SETEX", key, int(ttl.Seconds()), new)
-	} else {
-		conn.Send("SET", key, new)
-	}
-	if _, err := conn.Do("EXEC"); err == redis.ErrNil {
-		return false, nil
-	} else if err != nil {
-		return false, err
-	}
-
-	return true, nil
-}
-
-func (r *redisStore) compareAndSwapWithEval(conn redis.Conn, key string, old, new int64, ttl time.Duration) (bool, error) {
 	swapped, err := redis.Bool(conn.Do("EVAL", redisCASScript, 1, key, old, new, int(ttl.Seconds())))
 	if err != nil {
 		if strings.Contains(err.Error(), redisCASMissingKey) {

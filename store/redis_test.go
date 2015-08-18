@@ -1,10 +1,12 @@
-package store
+package store_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+
+	"gopkg.in/throttled/throttled.v0/store"
 )
 
 const (
@@ -27,8 +29,8 @@ func getPool() *redis.Pool {
 	return pool
 }
 
-func TestRedisStoreEval(t *testing.T) {
-	c, st := setupRedis(t, true, 0)
+func TestRedisStore(t *testing.T) {
+	c, st := setupRedis(t, 0)
 	defer c.Close()
 	defer clearRedis(c)
 
@@ -37,26 +39,8 @@ func TestRedisStoreEval(t *testing.T) {
 	storeTTLTest(t, st)
 }
 
-func TestRedisStoreWatch(t *testing.T) {
-	c, st := setupRedis(t, false, 0)
-	defer c.Close()
-	defer clearRedis(c)
-
-	clearRedis(c)
-	storeTest(t, st)
-	storeTTLTest(t, st)
-}
-
-func BenchmarkRedisStoreEval(b *testing.B) {
-	c, st := setupRedis(b, true, 0)
-	defer c.Close()
-	defer clearRedis(c)
-
-	storeBenchmark(b, st)
-}
-
-func BenchmarkRedisStoreWatch(b *testing.B) {
-	c, st := setupRedis(b, false, 0)
+func BenchmarkRedisStore(b *testing.B) {
+	c, st := setupRedis(b, 0)
 	defer c.Close()
 	defer clearRedis(c)
 
@@ -76,7 +60,7 @@ func clearRedis(c redis.Conn) error {
 	return nil
 }
 
-func setupRedis(tb testing.TB, useEval bool, ttl time.Duration) (redis.Conn, GCRAStore) {
+func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, store.GCRAStore) {
 	pool := getPool()
 	c := pool.Get()
 
@@ -90,9 +74,7 @@ func setupRedis(tb testing.TB, useEval bool, ttl time.Duration) (redis.Conn, GCR
 		tb.Fatal(err)
 	}
 
-	st := NewRedisStore(pool, redisTestPrefix, redisTestDB)
-
-	st.(*redisStore).supportsEval = useEval
+	st := store.NewRedisStore(pool, redisTestPrefix, redisTestDB)
 
 	return c, st
 }

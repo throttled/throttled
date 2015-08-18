@@ -62,7 +62,7 @@ func (ms *memStore) GetWithTime(key string) (int64, time.Time, error) {
 	return atomic.LoadInt64(valP), now, nil
 }
 
-func (ms *memStore) SetIfNotExists(key string, value int64, _ time.Duration) (bool, error) {
+func (ms *memStore) SetIfNotExistsWithTTL(key string, value int64, _ time.Duration) (bool, error) {
 	_, ok := ms.get(key, false)
 
 	if ok {
@@ -91,7 +91,7 @@ func (ms *memStore) SetIfNotExists(key string, value int64, _ time.Duration) (bo
 	return true, nil
 }
 
-func (ms *memStore) CompareAndSwap(key string, old, new int64, _ time.Duration) (bool, error) {
+func (ms *memStore) CompareAndSwapWithTTL(key string, old, new int64, _ time.Duration) (bool, error) {
 	valP, ok := ms.get(key, false)
 
 	if !ok {
