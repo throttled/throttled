@@ -20,8 +20,10 @@ var (
 	}
 )
 
-// A LimitResult is returned by a Limiter to indicate whether a particular
-// request excedes a limit.
+// The LimitResult interface is returned by a Limiter to indicate whether
+// a particular request excedes a limit. The concrete type underlying
+// the LimitResult might also implement RateLimitResult to expose more detailed
+// state.
 type LimitResult interface {
 	// Limited returns true when a particular request exceded a limit
 	Limited() bool

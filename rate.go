@@ -13,11 +13,11 @@ const (
 	maxCASAttempts = 10
 )
 
-// A RateLimitResult is returned by a Limiter to provide additional context
-// about the state of rate limiting at the time of the query. This state can
-// be used, for example, to communicate information to the client via HTTP headers.
-// Any function may return a negative value to indicate that the particular
-// attribute is not relevant to the implementation or state.
+// The RateLimitResult interface is implemented by LimitResults to provide
+// additional context about the state of rate limiting at the time of the query.
+// This state can be used, for example, to communicate information to the client
+// via HTTP headers. Any function may return a negative value to indicate that
+// the particular attribute is not relevant to the implementation or state.
 type RateLimitResult interface {
 	LimitResult
 
