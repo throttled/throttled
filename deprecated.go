@@ -32,12 +32,12 @@ type Quota interface {
 
 // DEPRECATED. Throttler is a backwards-compatible alias for HTTPLimiter.
 type Throttler struct {
-	HTTPLimiter
+	HTTPRateLimiter
 }
 
 // DEPRECATED. Throttle is an alias for HTTPLimiter#Limit
 func (t *Throttler) Throttle(h http.Handler) http.Handler {
-	return t.Limit(h)
+	return t.RateLimit(h)
 }
 
 // DEPRECATED. RateLimit creates a Throttler that conforms to the given
@@ -52,9 +52,9 @@ func RateLimit(q Quota, vary *VaryBy, store store.GCRAStore) *Throttler {
 	}
 
 	return &Throttler{
-		HTTPLimiter{
-			Limiter: limiter,
-			VaryBy:  vary,
+		HTTPRateLimiter{
+			RateLimiter: limiter,
+			VaryBy:      vary,
 		},
 	}
 }

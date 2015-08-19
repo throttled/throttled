@@ -1,72 +1,58 @@
 package throttled
 
 import (
+	"errors"
 	"math"
 	"net/http"
 	"strconv"
 )
 
 var (
-	// DefaultDeniedHandler is the default DeniedHandler for an HTTPLimiter.
-	// It returns a 429 status code with a generic message.
+	// DefaultDeniedHandler is the default DeniedHandler for an
+	// HTTPRateLimiter. It returns a 429 status code with a generic
+	// message.
 	DefaultDeniedHandler = http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "limit exceeded", 429)
 	}))
 
-	// DefaultError is the default Error function for an HTTPLimiter.
+	// DefaultError is the default Error function for an HTTPRateLimiter.
 	// It returns a 500 status code with a generic message.
 	DefaultError = func(w http.ResponseWriter, r *http.Request, err error) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}
 )
 
-// The LimitResult interface is returned by a Limiter to indicate whether
-// a particular request excedes a limit. The concrete type underlying
-// the LimitResult might also implement RateLimitResult to expose more detailed
-// state.
-type LimitResult interface {
-	// Limited returns true when a particular request exceded a limit
-	Limited() bool
-}
-
-// A Limiter manages the limiting of actions by key.
-type Limiter interface {
-	Limit(key string) (LimitResult, error)
-}
-
-// HTTPLimiter faciliates using a Limiter to limit HTTP requests.
-type HTTPLimiter struct {
-	// DeniedHandler is called if the request is disallowed. If it is nil,
-	// the DefaultDeniedHandler variable is used.
+// HTTPRateLimiter faciliates using a Limiter to limit HTTP requests.
+type HTTPRateLimiter struct {
+	// DeniedHandler is called if the request is disallowed. If it is
+	// nil, the DefaultDeniedHandler variable is used.
 	DeniedHandler http.Handler
 
 	// Error is called if the Limiter returns an error. If it is nil,
 	// the DefaultErrorFunc is used.
 	Error func(w http.ResponseWriter, r *http.Request, err error)
 
-	// Limiter is call for each request to determine whether the request
-	// is permitted and update internal state. If it is nil, all requests
-	// are permitted.
-	Limiter Limiter
+	// Limiter is call for each request to determine whether the
+	// request is permitted and update internal state. It must be set.
+	RateLimiter RateLimiter
 
-	// VaryBy is called for each request to generate a key for the limiter.
-	// If it is nil, all requests use an empty string key.
+	// VaryBy is called for each request to generate a key for the
+	// limiter.  If it is nil, all requests use an empty string key.
 	VaryBy interface {
 		Key(*http.Request) string
 	}
 }
 
-// Limit wraps an http.Handler to limit incoming requests.
-// Requests that are not limited will be passed to the handler unchanged.
-// Limited requests will be passed to the DeniedHandler.
+// RateLimit wraps an http.Handler to limit incoming requests.
+// Requests that are not limited will be passed to the handler
+// unchanged.  Limited requests will be passed to the DeniedHandler.
 // If the Limiter returns a RateLimitResult `X-RateLimit-Limit`,
-// `X-RateLimit-Remaining`, `X-RateLimit-Reset` and
-// `Retry-After` headers will be written to the response.
-func (t *HTTPLimiter) Limit(h http.Handler) http.Handler {
+// `X-RateLimit-Remaining`, `X-RateLimit-Reset` and `Retry-After`
+// headers will be written to the response.
+func (t *HTTPRateLimiter) RateLimit(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if t.Limiter == nil {
-			h.ServeHTTP(w, r)
-			return
+		if t.RateLimiter == nil {
+			t.error(w, r, errors.New("You must set a RateLimiter on HTTPRateLimiter"))
 		}
 
 		var k string
@@ -74,49 +60,50 @@ func (t *HTTPLimiter) Limit(h http.Handler) http.Handler {
 			k = t.VaryBy.Key(r)
 		}
 
-		lr, err := t.Limiter.Limit(k)
+		limited, context, err := t.RateLimiter.RateLimit(k, 1)
 
 		if err != nil {
-			e := t.Error
-			if e == nil {
-				e = DefaultError
-			}
-			e(w, r, err)
+			t.error(w, r, err)
 			return
 		}
 
-		if rlr, ok := lr.(RateLimitResult); ok {
-			setRateLimitHeaders(w, rlr)
-		}
+		setRateLimitHeaders(w, context)
 
-		if !lr.Limited() {
+		if !limited {
 			h.ServeHTTP(w, r)
-			return
+		} else {
+			dh := t.DeniedHandler
+			if dh == nil {
+				dh = DefaultDeniedHandler
+			}
+			dh.ServeHTTP(w, r)
 		}
-
-		dh := t.DeniedHandler
-		if dh == nil {
-			dh = DefaultDeniedHandler
-		}
-		dh.ServeHTTP(w, r)
 	})
 }
 
-func setRateLimitHeaders(w http.ResponseWriter, rlr RateLimitResult) {
-	if v := rlr.Limit(); v >= 0 {
+func (t *HTTPRateLimiter) error(w http.ResponseWriter, r *http.Request, err error) {
+	e := t.Error
+	if e == nil {
+		e = DefaultError
+	}
+	e(w, r, err)
+}
+
+func setRateLimitHeaders(w http.ResponseWriter, context RateLimitContext) {
+	if v := context.Limit; v >= 0 {
 		w.Header().Add("X-RateLimit-Limit", strconv.Itoa(v))
 	}
 
-	if v := rlr.Remaining(); v >= 0 {
+	if v := context.Remaining; v >= 0 {
 		w.Header().Add("X-RateLimit-Remaining", strconv.Itoa(v))
 	}
 
-	if v := rlr.Reset(); v >= 0 {
+	if v := context.ResetAfter; v >= 0 {
 		vi := int(math.Ceil(v.Seconds()))
 		w.Header().Add("X-RateLimit-Reset", strconv.Itoa(vi))
 	}
 
-	if v := rlr.RetryAfter(); v >= 0 {
+	if v := context.RetryAfter; v >= 0 {
 		vi := int(math.Ceil(v.Seconds()))
 		w.Header().Add("Retry-After", strconv.Itoa(vi))
 	}

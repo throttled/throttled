@@ -1,4 +1,4 @@
-package throttled
+package throttled_test
 
 import (
 	"errors"
@@ -6,23 +6,21 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"gopkg.in/throttled/throttled.v0"
 )
 
 type stubLimiter struct {
 }
 
-func (sl *stubLimiter) Limit(key string) (LimitResult, error) {
+func (sl *stubLimiter) RateLimit(key string, quantity int) (bool, throttled.RateLimitContext, error) {
 	switch key {
 	case "limit":
-		return &limitResult{true}, nil
-	case "rate":
-		return &rateLimitResult{limitResult{false}, 1, 2, time.Minute, -1}, nil
-	case "ratelimit":
-		return &rateLimitResult{limitResult{true}, -1, -1, -1, time.Minute}, nil
+		return true, throttled.RateLimitContext{-1, -1, -1, time.Minute}, nil
 	case "error":
-		return nil, errors.New("stubLimiter error")
+		return false, throttled.RateLimitContext{}, errors.New("stubLimiter error")
 	default:
-		return &limitResult{false}, nil
+		return false, throttled.RateLimitContext{1, 2, time.Minute, -1}, nil
 	}
 }
 
@@ -38,29 +36,27 @@ type httpTestCase struct {
 	headers map[string]string
 }
 
-func TestHTTPLimiter(t *testing.T) {
-	limiter := HTTPLimiter{
-		Limiter: &stubLimiter{},
-		VaryBy:  &pathGetter{},
+func TestHTTPRateLimiter(t *testing.T) {
+	limiter := throttled.HTTPRateLimiter{
+		RateLimiter: &stubLimiter{},
+		VaryBy:      &pathGetter{},
 	}
 
-	handler := limiter.Limit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := limiter.RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))
 
 	runHTTPTestCases(t, handler, []httpTestCase{
-		{"ok", 200, map[string]string{}},
-		{"limit", 429, map[string]string{}},
+		{"ok", 200, map[string]string{"X-Ratelimit-Limit": "1", "X-Ratelimit-Remaining": "2", "X-Ratelimit-Reset": "60"}},
 		{"error", 500, map[string]string{}},
-		{"rate", 200, map[string]string{"X-Ratelimit-Limit": "1", "X-Ratelimit-Remaining": "2", "X-Ratelimit-Reset": "60"}},
-		{"ratelimit", 429, map[string]string{"Retry-After": "60"}},
+		{"limit", 429, map[string]string{"Retry-After": "60"}},
 	})
 }
 
-func TestCustomHTTPLimiterHandlers(t *testing.T) {
-	limiter := HTTPLimiter{
-		Limiter: &stubLimiter{},
-		VaryBy:  &pathGetter{},
+func TestCustomHTTPRateLimiterHandlers(t *testing.T) {
+	limiter := throttled.HTTPRateLimiter{
+		RateLimiter: &stubLimiter{},
+		VaryBy:      &pathGetter{},
 		DeniedHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "custom limit exceeded", 400)
 		}),
@@ -69,7 +65,7 @@ func TestCustomHTTPLimiterHandlers(t *testing.T) {
 		},
 	}
 
-	handler := limiter.Limit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	handler := limiter.RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 	}))
 

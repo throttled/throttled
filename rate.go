@@ -13,35 +13,50 @@ const (
 	maxCASAttempts = 10
 )
 
-// The RateLimitResult interface is implemented by LimitResults to provide
-// additional context about the state of rate limiting at the time of the query.
-// This state can be used, for example, to communicate information to the client
-// via HTTP headers. Any function may return a negative value to indicate that
-// the particular attribute is not relevant to the implementation or state.
-type RateLimitResult interface {
-	LimitResult
+// A RateLimiter manages limiting the rate of actions by key
+type RateLimiter interface {
+	// RateLimit checks whether a particular key has exceeded a rate
+	// limit. It also returns a RateLimitContext to provide additional
+	// information about the state of the RateLimiter.
+	//
+	// If the rate limit has not been exceeded, the underlying storage
+	// is updated by the supplied quantity. For example, a quantity of
+	// 1 might be used to rate limit a single request while a greater
+	// quantity could rate limit based on the size of a file upload in
+	// megabytes. If quantity is 0, no update is performed allowing
+	// you to "peek" at the state of the RateLimiter for a given key.
+	RateLimit(key string, quantity int) (bool, RateLimitContext, error)
+}
 
-	// Limit returns the maximum number of requests that could be permitted
-	// instantaneously per key starting from an empty state. For example,
-	// if a rate limiter allows 10 requests per second, Limit would always
-	// return 10.
-	Limit() int
+// RateLimitContext represents the state of the RateLimiter for a
+// given key at the time of the query. This state can be used, for
+// example, to communicate information to the client via HTTP
+// headers. Negative values indicate that the attribute is not
+// relevant to the implementation or state.
+type RateLimitContext struct {
+	// Limit is the maximum number of requests that could be permitted
+	// instantaneously for this key starting from an empty state. For
+	// example, if a rate limiter allows 10 requests per second per
+	// key, Limit would always be 10.
+	Limit int
 
-	// Remaining returns the maximum number of requests that could be permitted
-	// instantaneously per key given the current state. For example, if a rate
-	// limiter allows 10 requests per second and has already received 6 requests
-	// for a given key this second, Remaining would return 4.
-	Remaining() int
+	// Remaining is the maximum number of requests that could be
+	// permitted instantaneously for this key given the current
+	// state. For example, if a rate limiter allows 10 requests per
+	// second and has already received 6 requests for this key this
+	// second, Remaining would be 4.
+	Remaining int
 
-	// Reset returns the time until the rate limiter returns to its initial
-	// state for a given key. For example, if a rate limiter manages requests per second
-	// per second and received one request 200ms ago, Reset would return 800ms.
-	// This should be the earliest time when Limit and Remaining are equal.
-	Reset() time.Duration
+	// ResetAfter is the time until the RateLimiter returns to its
+	// initial state for a given key. For example, if a rate limiter
+	// manages requests per second and received one request 200ms ago,
+	// Reset would return 800ms. You can also think of this as the time
+	// until Limit and Remaining will be equal.
+	ResetAfter time.Duration
 
-	// RetryAfter returns the time until the next request will be permitted.
-	// It should only be set if the current request was limited.
-	RetryAfter() time.Duration
+	// RetryAfter is the time until the next request will be permitted.
+	// It should be -1 unless the rate limit has been exceeded.
+	RetryAfter time.Duration
 }
 
 type limitResult struct {
@@ -84,7 +99,9 @@ func PerHour(n int) RateQuota { return RateQuota{n, time.Hour} }
 // PerDay represents a number of requests per day.
 func PerDay(n int) RateQuota { return RateQuota{n, 24 * time.Hour} }
 
-type gcraLimiter struct {
+// GCRARateLimiter is a RateLimiter that users the generic cell-rate
+// algorithm.
+type GCRARateLimiter struct {
 	limit int
 	// Think of the DVT as our flexibility:
 	// How far can you deviate from the nominal equally spaced schedule?
@@ -98,15 +115,13 @@ type gcraLimiter struct {
 	store store.GCRAStore
 }
 
-// NewGCRARateLimiter creates a Limiter that uses the generic cell-rate
-// algorithm. Calls to `Limit` return a `RateLimitResult`.
-//
-// quota.Count defines the maximum number of requests permitted in an
-// instantaneous burst and quota.Count / quota.Period defines the maximum
-// sustained rate. For example, PerMin(60) permits 60 requests instantly per key
-// followed by one request per second indefinitely whereas PerSec(1) only permits
-// one request per second with no tolerance for bursts.
-func NewGCRARateLimiter(st store.GCRAStore, quota RateQuota) (Limiter, error) {
+// NewGCRARateLimiter creates a GCRARateLimiter. quota.Count defines
+// the maximum number of requests permitted in an instantaneous burst
+// and quota.Count / quota.Period defines the maximum sustained
+// rate. For example, PerMin(60) permits 60 requests instantly per key
+// followed by one request per second indefinitely whereas PerSec(1)
+// only permits one request per second with no tolerance for bursts.
+func NewGCRARateLimiter(st store.GCRAStore, quota RateQuota) (*GCRARateLimiter, error) {
 	if quota.Count <= 0 {
 		return nil, fmt.Errorf("Invalid RateQuota %#v. Count must be greater that zero.", quota)
 	}
@@ -122,7 +137,7 @@ func NewGCRARateLimiter(st store.GCRAStore, quota RateQuota) (Limiter, error) {
 			"that is more evenly divisible by the Count.", quota)
 	}
 
-	return &gcraLimiter{
+	return &GCRARateLimiter{
 		delayVariationTolerance: quota.Period - ei,
 		emissionInterval:        ei,
 		limit:                   quota.Count,
@@ -130,9 +145,20 @@ func NewGCRARateLimiter(st store.GCRAStore, quota RateQuota) (Limiter, error) {
 	}, nil
 }
 
-func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
+// RateLimit checks whether a particular key has exceeded a rate
+// limit. It also returns a RateLimitContext to provide additional
+// information about the state of the RateLimiter.
+//
+// If the rate limit has not been exceeded, the underlying storage is
+// updated by the supplied quantity. For example, a quantity of 1
+// might be used to rate limit a single request while a greater
+// quantity could rate limit based on the size of a file upload in
+// megabytes. If quantity is 0, no update is performed allowing you
+// to "peek" at the state of the RateLimiter for a given key.
+func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitContext, error) {
 	var tat, newTat, now time.Time
 	var ttl time.Duration
+	rlc := RateLimitContext{Limit: g.limit}
 	limited := false
 
 	i := 0
@@ -145,7 +171,7 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 		// from equally spaced requests at exactly the rate limit.
 		tatVal, now, err = g.store.GetWithTime(key)
 		if err != nil {
-			return nil, err
+			return false, rlc, err
 		}
 
 		if tatVal == -1 {
@@ -163,9 +189,9 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 			}
 
 			if now.After(tat) {
-				newTat = now.Add(g.emissionInterval)
+				newTat = now.Add(time.Duration(quantity) * g.emissionInterval)
 			} else {
-				newTat = tat.Add(g.emissionInterval)
+				newTat = tat.Add(time.Duration(quantity) * g.emissionInterval)
 			}
 
 			ttl = newTat.Sub(now)
@@ -173,7 +199,7 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 		}
 
 		if err != nil {
-			return nil, err
+			return false, rlc, err
 		}
 		if updated {
 			break
@@ -181,7 +207,7 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 
 		i++
 		if i > maxCASAttempts {
-			return nil, fmt.Errorf(
+			return false, rlc, fmt.Errorf(
 				"Failed to store updated rate limit data for key %s after %d attempts",
 				key, i,
 			)
@@ -189,22 +215,15 @@ func (g *gcraLimiter) Limit(key string) (LimitResult, error) {
 	}
 
 	next := g.delayVariationTolerance - ttl
-	var remaining int
-	if next < 0 {
-		remaining = 0
-	} else {
-		remaining = int(next/g.emissionInterval + 1)
+	if next >= 0 {
+		rlc.Remaining = int(next/g.emissionInterval + 1)
 	}
-	retryAfter := -next
-	if !limited {
-		retryAfter = -1
+	rlc.ResetAfter = ttl
+	if limited {
+		rlc.RetryAfter = -next
+	} else {
+		rlc.RetryAfter = -1
 	}
 
-	return &rateLimitResult{
-		limitResult: limitResult{limited},
-		limit:       g.limit,
-		remaining:   remaining,
-		reset:       ttl,
-		retryAfter:  retryAfter,
-	}, nil
+	return limited, rlc, nil
 }

@@ -1,3 +1,5 @@
+
+
 .PHONY: test test-cover bench lint get-deps .go-test .go-test-cover
 
 test: .go-test bench lint
@@ -9,7 +11,9 @@ bench:
 
 lint:
 	gofmt -l .
+ifneq ($(TRAVIS_GO_VERSION),1.3)  # go vet doesn't play nicely on 1.3
 	go vet ./...
+endif
 	which golint # Fail if golint doesn't exist
 	-golint . # Don't fail on golint warnings themselves
 

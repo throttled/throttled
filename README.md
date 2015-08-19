@@ -1,7 +1,7 @@
 # Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v0?status.png)](https://godoc.org/gopkg.in/throttled/throttled.v0)
 
-Package throttled implements various strategies for limiting access to resources,
-such as for rate limiting HTTP requests.
+Package throttled implements rate limiting access to resources such as
+HTTP endpoints.
 
 ## Installation
 

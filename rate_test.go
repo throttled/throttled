@@ -1,9 +1,10 @@
-package throttled
+package throttled_test
 
 import (
 	"testing"
 	"time"
 
+	"gopkg.in/throttled/throttled.v0"
 	"gopkg.in/throttled/throttled.v0/store"
 )
 
@@ -35,9 +36,10 @@ func (ts *testStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.
 	return ts.store.CompareAndSwapWithTTL(key, old, new, ttl)
 }
 
+// TODO: Include tests for rate limiting quantities greater than 1
 func TestRateLimit(t *testing.T) {
 	limit := 5
-	rq := RateQuota{limit, 5 * time.Second}
+	rq := throttled.RateQuota{limit, 5 * time.Second}
 	start := time.Unix(0, 0)
 	cases := []struct {
 		now          time.Time
@@ -59,7 +61,7 @@ func TestRateLimit(t *testing.T) {
 	}
 
 	st := testStore{store: store.NewMemStore(0)}
-	rl, err := NewGCRARateLimiter(&st, rq)
+	rl, err := throttled.NewGCRARateLimiter(&st, rq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,44 +70,42 @@ func TestRateLimit(t *testing.T) {
 	for i, c := range cases {
 		st.clock = c.now
 
-		lr, err := rl.Limit("foo")
+		limited, context, err := rl.RateLimit("foo", 1)
 		if err != nil {
 			t.Fatalf("%d: %#v", i, err)
 		}
 
-		if have, want := lr.Limited(), c.limited; have != want {
-			t.Errorf("%d: expected Limited to be %t but got %t", i, want, have)
+		if limited != c.limited {
+			t.Errorf("%d: expected Limited to be %t but got %t", i, c.limited, limited)
 		}
 
-		rlr := lr.(RateLimitResult)
-
-		if have, want := rlr.Limit(), limit; have != want {
+		if have, want := context.Limit, limit; have != want {
 			t.Errorf("%d: expected Limit to be %d but got %d", i, want, have)
 		}
 
-		if have, want := rlr.Remaining(), c.remaining; have != want {
+		if have, want := context.Remaining, c.remaining; have != want {
 			t.Errorf("%d: expected Remaining to be %d but got %d", i, want, have)
 		}
 
-		if have, want := rlr.Reset(), c.reset; have != want {
+		if have, want := context.ResetAfter, c.reset; have != want {
 			t.Errorf("%d: expected Reset to be %s but got %s", i, want, have)
 		}
 
-		if have, want := rlr.RetryAfter(), c.retry; have != want {
+		if have, want := context.RetryAfter, c.retry; have != want {
 			t.Errorf("%d: expected RetryAfter to be %d but got %d", i, want, have)
 		}
 	}
 }
 
 func TestRateLimitUpdateFailures(t *testing.T) {
-	rq := RateQuota{1, time.Second}
+	rq := throttled.RateQuota{1, time.Second}
 	st := testStore{store: store.NewMemStore(0), failUpdates: true}
-	rl, err := NewGCRARateLimiter(&st, rq)
+	rl, err := throttled.NewGCRARateLimiter(&st, rq)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, err := rl.Limit("foo"); err == nil {
+	if _, _, err := rl.RateLimit("foo", 1); err == nil {
 		t.Error("Expected limiting to fail when store updates fail")
 	}
 }
