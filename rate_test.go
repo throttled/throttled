@@ -11,7 +11,7 @@ import (
 const deniedStatus = 429
 
 type testStore struct {
-	store store.GCRAStore
+	store throttled.GCRAStore
 
 	clock       time.Time
 	failUpdates bool

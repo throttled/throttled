@@ -16,6 +16,7 @@ ifneq ($(TRAVIS_GO_VERSION),1.3)  # go vet doesn't play nicely on 1.3
 endif
 	which golint # Fail if golint doesn't exist
 	-golint . # Don't fail on golint warnings themselves
+	-golint store # Don't fail on golint warnings themselves
 
 get-deps:
 	go get github.com/garyburd/redigo/redis

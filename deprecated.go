@@ -3,8 +3,6 @@ package throttled
 import (
 	"net/http"
 	"time"
-
-	"gopkg.in/throttled/throttled.v0/store"
 )
 
 // DEPRECATED. Quota returns the number of requests allowed and the custom time window.
@@ -42,7 +40,7 @@ func (t *Throttler) Throttle(h http.Handler) http.Handler {
 
 // DEPRECATED. RateLimit creates a Throttler that conforms to the given
 // rate limits
-func RateLimit(q Quota, vary *VaryBy, store store.GCRAStore) *Throttler {
+func RateLimit(q Quota, vary *VaryBy, store GCRAStore) *Throttler {
 	count, period := q.Quota()
 	limiter, err := NewGCRARateLimiter(store, RateQuota{count, period})
 	// TODO: It's sad to introduce this panic but I think better than disallowing
@@ -59,7 +57,7 @@ func RateLimit(q Quota, vary *VaryBy, store store.GCRAStore) *Throttler {
 	}
 }
 
-// DEPRECATED. Store is an alias for store.GCRAStore
+// DEPRECATED. Store is an alias for GCRAStore
 type Store interface {
-	store.GCRAStore
+	GCRAStore
 }

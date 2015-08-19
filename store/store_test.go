@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/throttled/throttled.v0/store"
+	"gopkg.in/throttled/throttled.v0"
 )
 
-func storeTest(t *testing.T, st store.GCRAStore) {
+func storeTest(t *testing.T, st throttled.GCRAStore) {
 	// GetWithTime a missing key
 	if have, _, err := st.GetWithTime("foo"); err != nil {
 		t.Fatal(err)
@@ -91,7 +91,7 @@ func storeTest(t *testing.T, st store.GCRAStore) {
 	}
 }
 
-func storeTTLTest(t *testing.T, st store.GCRAStore) {
+func storeTTLTest(t *testing.T, st throttled.GCRAStore) {
 	ttl := time.Second
 	want := int64(1)
 	key := "ttl"
@@ -116,7 +116,7 @@ func storeTTLTest(t *testing.T, st store.GCRAStore) {
 	}
 }
 
-func storeBenchmark(b *testing.B, st store.GCRAStore) {
+func storeBenchmark(b *testing.B, st throttled.GCRAStore) {
 	seed := int64(42)
 	var attempts, updates int64
 

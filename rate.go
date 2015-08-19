@@ -3,8 +3,6 @@ package throttled
 import (
 	"fmt"
 	"time"
-
-	"gopkg.in/throttled/throttled.v0/store"
 )
 
 const (
@@ -112,7 +110,7 @@ type GCRARateLimiter struct {
 	// think of it as how frequently the bucket leaks one unit.
 	emissionInterval time.Duration
 
-	store store.GCRAStore
+	store GCRAStore
 }
 
 // NewGCRARateLimiter creates a GCRARateLimiter. quota.Count defines
@@ -121,7 +119,7 @@ type GCRARateLimiter struct {
 // rate. For example, PerMin(60) permits 60 requests instantly per key
 // followed by one request per second indefinitely whereas PerSec(1)
 // only permits one request per second with no tolerance for bursts.
-func NewGCRARateLimiter(st store.GCRAStore, quota RateQuota) (*GCRARateLimiter, error) {
+func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error) {
 	if quota.Count <= 0 {
 		return nil, fmt.Errorf("Invalid RateQuota %#v. Count must be greater that zero.", quota)
 	}

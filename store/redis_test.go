@@ -60,7 +60,7 @@ func clearRedis(c redis.Conn) error {
 	return nil
 }
 
-func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, store.GCRAStore) {
+func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *store.RedisStore) {
 	pool := getPool()
 	c := pool.Get()
 

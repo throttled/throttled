@@ -27,28 +27,30 @@ return 1
 )
 
 // RedisStore implements a Redis-based store.
-type redisStore struct {
+type RedisStore struct {
 	pool   *redis.Pool
 	prefix string
 	db     int
 }
 
-// NewRedisStore creates a new Redis-based store, using the provided pool to get its
-// connections. The keys will have the specified keyPrefix, which may be an empty string,
-// and the database index specified by db will be selected to store the keys. Any
-// updating operations will reset the key TTL to the provided value rounded down to
-// the nearest second. Depends on Redis 2.6+ for EVAL support.
-func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) GCRAStore {
-	return &redisStore{
+// NewRedisStore creates a new Redis-based store, using the provided
+// pool to get its connections. The keys will have the specified
+// keyPrefix, which may be an empty string, and the database index
+// specified by db will be selected to store the keys. Any updating
+// operations will reset the key TTL to the provided value rounded
+// down to the nearest second. Depends on Redis 2.6+ for EVAL support.
+func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) *RedisStore {
+	return &RedisStore{
 		pool:   pool,
 		prefix: keyPrefix,
 		db:     db,
 	}
 }
 
-// Get returns the value of the key if it is in the Store or -1 if it does
-// not exist.
-func (r *redisStore) GetWithTime(key string) (int64, time.Time, error) {
+// GetWithTime returns the value of the key if it is in the store
+// or -1 if it does not exist. It also returns the current time at
+// the redis server to microsecond precision.
+func (r *RedisStore) GetWithTime(key string) (int64, time.Time, error) {
 	var now time.Time
 
 	key = r.prefix + key
@@ -83,9 +85,11 @@ func (r *redisStore) GetWithTime(key string) (int64, time.Time, error) {
 	return v, now, nil
 }
 
-// SetIfNotExists sets the value of key only if it is not already set in the Store
-// it returns whether a new value was set.
-func (r *redisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
+// SetIfNotExistsWithTTL sets the value of key only if it is not
+// already set in the store it returns whether a new value was set.
+// If a new value was set, the ttl in the key is also set, though this
+// operation is not performed atomically.
+func (r *RedisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 
 	conn, err := r.getConn()
@@ -110,11 +114,12 @@ func (r *redisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Dur
 	return updated, nil
 }
 
-// CompareAndSwap atomically compares the value at key to the old value.
-// If it matches, it sets it to the new value and returns true. Otherwise,
-// it returns false. If the key does not exist in the store, it returns
-// false with no error.
-func (r *redisStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
+// CompareAndSwapWithTTL atomically compares the value at key to the
+// old value. If it matches, it sets it to the new value and returns
+// true. Otherwise, it returns false. If the key does not exist in the
+// store, it returns false with no error. If the swap succeeds, the
+// ttl for the key is updated atomically.
+func (r *RedisStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 	conn, err := r.getConn()
 	if err != nil {
@@ -135,7 +140,7 @@ func (r *redisStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.
 }
 
 // Select the specified database index.
-func (r *redisStore) getConn() (redis.Conn, error) {
+func (r *RedisStore) getConn() (redis.Conn, error) {
 	conn := r.pool.Get()
 
 	// Select the specified database
