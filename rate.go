@@ -2,7 +2,6 @@ package throttled
 
 import (
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -91,7 +90,9 @@ type Rate struct {
 // requests will be permitted for that client for one second. In
 // practice, you probably want to set MaxBurst >0 to provide some
 // flexibility to clients that only need to make a handful of
-// requests.
+// requests. In fact a MaxBurst of zero will *never* permit a request
+// with a quantity greater than one because it will immediately exceed
+// the limit.
 type RateQuota struct {
 	MaxRate  Rate
 	MaxBurst int
@@ -110,7 +111,9 @@ func PerHour(n int) Rate { return Rate{time.Hour / time.Duration(n), n} }
 func PerDay(n int) Rate { return Rate{24 * time.Hour / time.Duration(n), n} }
 
 // GCRARateLimiter is a RateLimiter that users the generic cell-rate
-// algorithm.
+// algorithm. The algorithm has been slightly modified from its usual
+// form to support limiting with an additional quantity parameter, such
+// as for limiting the number of bytes uploaded.
 type GCRARateLimiter struct {
 	limit int
 	// Think of the DVT as our flexibility:
@@ -139,10 +142,8 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 		return nil, fmt.Errorf("Invalid RateQuota %#v. MaxRate must be greater than zero.", quota)
 	}
 
-	log.Printf("dvt:%d\tei:%d", quota.MaxRate.period*time.Duration(quota.MaxBurst), quota.MaxRate.period)
-
 	return &GCRARateLimiter{
-		delayVariationTolerance: quota.MaxRate.period * time.Duration(quota.MaxBurst),
+		delayVariationTolerance: quota.MaxRate.period * (time.Duration(quota.MaxBurst) + 1),
 		emissionInterval:        quota.MaxRate.period,
 		limit:                   quota.MaxBurst + 1,
 		store:                   st,
@@ -162,7 +163,7 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitContext, error) {
 	var tat, newTat, now time.Time
 	var ttl time.Duration
-	rlc := RateLimitContext{Limit: g.limit}
+	rlc := RateLimitContext{Limit: g.limit, RetryAfter: -1}
 	limited := false
 
 	i := 0
@@ -179,27 +180,35 @@ func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitCo
 		}
 
 		if tatVal == -1 {
-			newTat = now.Add(g.emissionInterval)
-			ttl = newTat.Sub(now)
-			updated, err = g.store.SetIfNotExistsWithTTL(key, newTat.UnixNano(), ttl)
+			tat = now
 		} else {
 			tat = time.Unix(0, tatVal)
+		}
 
-			// Block the request if the next permitted time is in the future
-			if now.Before(tat.Add(-g.delayVariationTolerance)) {
-				ttl = tat.Sub(now)
-				limited = true
-				break
+		increment := time.Duration(quantity) * g.emissionInterval
+		if now.After(tat) {
+			newTat = now.Add(increment)
+		} else {
+			newTat = tat.Add(increment)
+		}
+
+		// Block the request if the next permitted time is in the future
+		allowAt := newTat.Add(-(g.delayVariationTolerance))
+		if diff := now.Sub(allowAt); diff < 0 {
+			if increment <= g.delayVariationTolerance {
+				rlc.RetryAfter = -diff
 			}
+			ttl = tat.Sub(now)
+			limited = true
+			break
+		}
 
-			if now.After(tat) {
-				newTat = now.Add(time.Duration(quantity) * g.emissionInterval)
-			} else {
-				newTat = tat.Add(time.Duration(quantity) * g.emissionInterval)
-			}
+		ttl = newTat.Sub(now)
 
-			ttl = newTat.Sub(now)
-			updated, err = g.store.CompareAndSwapWithTTL(key, tat.UnixNano(), newTat.UnixNano(), ttl)
+		if tatVal == -1 {
+			updated, err = g.store.SetIfNotExistsWithTTL(key, newTat.UnixNano(), ttl)
+		} else {
+			updated, err = g.store.CompareAndSwapWithTTL(key, tatVal, newTat.UnixNano(), ttl)
 		}
 
 		if err != nil {
@@ -219,15 +228,10 @@ func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitCo
 	}
 
 	next := g.delayVariationTolerance - ttl
-	if next >= 0 {
-		rlc.Remaining = int(next/g.emissionInterval + 1)
+	if next > -g.emissionInterval {
+		rlc.Remaining = int(next / g.emissionInterval)
 	}
 	rlc.ResetAfter = ttl
-	if limited {
-		rlc.RetryAfter = -next
-	} else {
-		rlc.RetryAfter = -1
-	}
 
 	return limited, rlc, nil
 }
