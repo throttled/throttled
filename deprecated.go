@@ -6,8 +6,8 @@ import (
 )
 
 // DEPRECATED. Quota returns the number of requests allowed and the custom time window.
-func (q RateQuota) Quota() (int, time.Duration) {
-	return q.Count, q.Period
+func (q Rate) Quota() (int, time.Duration) {
+	return q.count, q.period * time.Duration(q.count)
 }
 
 // DEPRECATED. Q represents a custom quota.
@@ -42,9 +42,19 @@ func (t *Throttler) Throttle(h http.Handler) http.Handler {
 // rate limits
 func RateLimit(q Quota, vary *VaryBy, store GCRAStore) *Throttler {
 	count, period := q.Quota()
-	limiter, err := NewGCRARateLimiter(store, RateQuota{count, period})
-	// TODO: It's sad to introduce this panic but I think better than disallowing
-	// errors from the initialization.
+
+	if count < 1 {
+		count = 1
+	}
+	if period <= 0 {
+		period = time.Second
+	}
+
+	rate := Rate{period: period / time.Duration(count)}
+	limiter, err := NewGCRARateLimiter(store, RateQuota{rate, count - 1})
+
+	// This panic in unavoidable because the original interface does
+	// not support returning an error.
 	if err != nil {
 		panic(err)
 	}

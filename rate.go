@@ -2,6 +2,7 @@ package throttled
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -75,27 +76,38 @@ func (r *rateLimitResult) Remaining() int            { return r.remaining }
 func (r *rateLimitResult) Reset() time.Duration      { return r.reset }
 func (r *rateLimitResult) RetryAfter() time.Duration { return r.retryAfter }
 
+type Rate struct {
+	period time.Duration //  Time between equally spaced requests at the rate
+	count  int           // Used internally for deprecated `RateLimit` interface only
+}
+
 // RateQuota describes the number of requests allowed per time period.
-// The Count also represents the maximum number of requests permitted in
-// a burst. For example, a quota of 60 requests every minute would allow either
-// a continuous stream of 1 request every second or a burst of 60 requests at the
-// same time once a minute.
+// MaxRate specified the maximum sustained rate of requests and must
+// be greater than zero.  MaxBurst defines the number of requests that
+// will be allowed to exceed the rate in a single burst and must be
+// greater than or equal to zero.
+//
+// Rate{PerSec(1), 0} would mean that after each request, no more
+// requests will be permitted for that client for one second. In
+// practice, you probably want to set MaxBurst >0 to provide some
+// flexibility to clients that only need to make a handful of
+// requests.
 type RateQuota struct {
-	Count  int
-	Period time.Duration
+	MaxRate  Rate
+	MaxBurst int
 }
 
 // PerSec represents a number of requests per second.
-func PerSec(n int) RateQuota { return RateQuota{n, time.Second} }
+func PerSec(n int) Rate { return Rate{time.Second / time.Duration(n), n} }
 
 // PerMin represents a number of requests per minute.
-func PerMin(n int) RateQuota { return RateQuota{n, time.Minute} }
+func PerMin(n int) Rate { return Rate{time.Minute / time.Duration(n), n} }
 
 // PerHour represents a number of requests per hour.
-func PerHour(n int) RateQuota { return RateQuota{n, time.Hour} }
+func PerHour(n int) Rate { return Rate{time.Hour / time.Duration(n), n} }
 
 // PerDay represents a number of requests per day.
-func PerDay(n int) RateQuota { return RateQuota{n, 24 * time.Hour} }
+func PerDay(n int) Rate { return Rate{24 * time.Hour / time.Duration(n), n} }
 
 // GCRARateLimiter is a RateLimiter that users the generic cell-rate
 // algorithm.
@@ -120,25 +132,19 @@ type GCRARateLimiter struct {
 // followed by one request per second indefinitely whereas PerSec(1)
 // only permits one request per second with no tolerance for bursts.
 func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error) {
-	if quota.Count <= 0 {
-		return nil, fmt.Errorf("Invalid RateQuota %#v. Count must be greater that zero.", quota)
+	if quota.MaxBurst < 0 {
+		return nil, fmt.Errorf("Invalid RateQuota %#v. MaxBurst must be greater than zero.", quota)
 	}
-	if quota.Period <= 0 {
-		return nil, fmt.Errorf("Invalid RateQuota %#v. Period must be greater that zero.", quota)
+	if quota.MaxRate.period <= 0 {
+		return nil, fmt.Errorf("Invalid RateQuota %#v. MaxRate must be greater than zero.", quota)
 	}
 
-	ei := quota.Period / time.Duration(quota.Count)
-	if quota.Period%time.Duration(quota.Count) > (quota.Period / 100) {
-		return nil, fmt.Errorf("Invalid RateQuota %#v. "+
-			"Integer division of Period / Count has a remainder >1%% of the Period. "+
-			"This will lead to inaccurate results. Try choosing a larger Period or one "+
-			"that is more evenly divisible by the Count.", quota)
-	}
+	log.Printf("dvt:%d\tei:%d", quota.MaxRate.period*time.Duration(quota.MaxBurst), quota.MaxRate.period)
 
 	return &GCRARateLimiter{
-		delayVariationTolerance: quota.Period - ei,
-		emissionInterval:        ei,
-		limit:                   quota.Count,
+		delayVariationTolerance: quota.MaxRate.period * time.Duration(quota.MaxBurst),
+		emissionInterval:        quota.MaxRate.period,
+		limit:                   quota.MaxBurst + 1,
 		store:                   st,
 	}, nil
 }
