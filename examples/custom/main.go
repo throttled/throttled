@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/throttled/throttled"
+	"gopkg.in/throttled/throttled.v1"
 )
 
 var (

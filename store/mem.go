@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/groupcache/lru"
-	"github.com/throttled/throttled"
+	"gopkg.in/throttled/throttled.v1"
 )
 
 // memStore implements an in-memory Store.

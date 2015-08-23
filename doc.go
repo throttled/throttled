@@ -3,7 +3,7 @@
 //
 // Installation
 //
-// go get github.com/throttled/throttled/...
+// go get gopkg.in/throttled/throttled.v1/...
 //
 // Inverval
 //
@@ -62,7 +62,7 @@
 // Documentation
 //
 // The API documentation is available as usual on godoc.org:
-//    http://godoc.org/github.com/throttled/throttled
+//    http://godoc.org/gopkg.in/throttled/throttled.v1
 //
 // There is also a blog post explaining the package's usage on 0value.com:
 //    http://0value.com/throttled--guardian-of-the-web-server
@@ -74,4 +74,4 @@
 // The BSD 3-clause license. Copyright (c) 2014 Martin Angers and Contributors.
 //    http://opensource.org/licenses/BSD-3-Clause
 //
-package throttled // import "github.com/throttled/throttled"
+package throttled // import "gopkg.in/throttled/throttled.v1"
