@@ -13,14 +13,14 @@ import (
 type stubLimiter struct {
 }
 
-func (sl *stubLimiter) RateLimit(key string, quantity int) (bool, throttled.RateLimitContext, error) {
+func (sl *stubLimiter) RateLimit(key string, quantity int) (bool, throttled.RateLimitResult, error) {
 	switch key {
 	case "limit":
-		return true, throttled.RateLimitContext{-1, -1, -1, time.Minute}, nil
+		return true, throttled.RateLimitResult{-1, -1, -1, time.Minute}, nil
 	case "error":
-		return false, throttled.RateLimitContext{}, errors.New("stubLimiter error")
+		return false, throttled.RateLimitResult{}, errors.New("stubLimiter error")
 	default:
-		return false, throttled.RateLimitContext{1, 2, time.Minute, -1}, nil
+		return false, throttled.RateLimitResult{1, 2, time.Minute, -1}, nil
 	}
 }
 

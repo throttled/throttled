@@ -28,8 +28,8 @@ type HTTPRateLimiter struct {
 	// nil, the DefaultDeniedHandler variable is used.
 	DeniedHandler http.Handler
 
-	// Error is called if the Limiter returns an error. If it is nil,
-	// the DefaultErrorFunc is used.
+	// Error is called if the RateLimiter returns an error. If it is
+	// nil, the DefaultErrorFunc is used.
 	Error func(w http.ResponseWriter, r *http.Request, err error)
 
 	// Limiter is call for each request to determine whether the
@@ -37,7 +37,7 @@ type HTTPRateLimiter struct {
 	RateLimiter RateLimiter
 
 	// VaryBy is called for each request to generate a key for the
-	// limiter.  If it is nil, all requests use an empty string key.
+	// limiter. If it is nil, all requests use an empty string key.
 	VaryBy interface {
 		Key(*http.Request) string
 	}
@@ -46,9 +46,9 @@ type HTTPRateLimiter struct {
 // RateLimit wraps an http.Handler to limit incoming requests.
 // Requests that are not limited will be passed to the handler
 // unchanged.  Limited requests will be passed to the DeniedHandler.
-// If the Limiter returns a RateLimitResult `X-RateLimit-Limit`,
-// `X-RateLimit-Remaining`, `X-RateLimit-Reset` and `Retry-After`
-// headers will be written to the response.
+// X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset and
+// Retry-After headers will be written to the response based on the
+// values in the RateLimitResult.
 func (t *HTTPRateLimiter) RateLimit(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if t.RateLimiter == nil {
@@ -89,7 +89,7 @@ func (t *HTTPRateLimiter) error(w http.ResponseWriter, r *http.Request, err erro
 	e(w, r, err)
 }
 
-func setRateLimitHeaders(w http.ResponseWriter, context RateLimitContext) {
+func setRateLimitHeaders(w http.ResponseWriter, context RateLimitResult) {
 	if v := context.Limit; v >= 0 {
 		w.Header().Add("X-RateLimit-Limit", strconv.Itoa(v))
 	}

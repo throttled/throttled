@@ -11,10 +11,10 @@ const (
 	maxCASAttempts = 10
 )
 
-// A RateLimiter manages limiting the rate of actions by key
+// A RateLimiter manages limiting the rate of actions by key.
 type RateLimiter interface {
 	// RateLimit checks whether a particular key has exceeded a rate
-	// limit. It also returns a RateLimitContext to provide additional
+	// limit. It also returns a RateLimitResult to provide additional
 	// information about the state of the RateLimiter.
 	//
 	// If the rate limit has not been exceeded, the underlying storage
@@ -23,15 +23,15 @@ type RateLimiter interface {
 	// quantity could rate limit based on the size of a file upload in
 	// megabytes. If quantity is 0, no update is performed allowing
 	// you to "peek" at the state of the RateLimiter for a given key.
-	RateLimit(key string, quantity int) (bool, RateLimitContext, error)
+	RateLimit(key string, quantity int) (bool, RateLimitResult, error)
 }
 
-// RateLimitContext represents the state of the RateLimiter for a
+// RateLimitResult represents the state of the RateLimiter for a
 // given key at the time of the query. This state can be used, for
 // example, to communicate information to the client via HTTP
 // headers. Negative values indicate that the attribute is not
 // relevant to the implementation or state.
-type RateLimitContext struct {
+type RateLimitResult struct {
 	// Limit is the maximum number of requests that could be permitted
 	// instantaneously for this key starting from an empty state. For
 	// example, if a rate limiter allows 10 requests per second per
@@ -75,8 +75,10 @@ func (r *rateLimitResult) Remaining() int            { return r.remaining }
 func (r *rateLimitResult) Reset() time.Duration      { return r.reset }
 func (r *rateLimitResult) RetryAfter() time.Duration { return r.retryAfter }
 
+// Rate describes a frequency of an activity such as the number of requests
+// allowed per minute.
 type Rate struct {
-	period time.Duration //  Time between equally spaced requests at the rate
+	period time.Duration // Time between equally spaced requests at the rate
 	count  int           // Used internally for deprecated `RateLimit` interface only
 }
 
@@ -151,7 +153,7 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 }
 
 // RateLimit checks whether a particular key has exceeded a rate
-// limit. It also returns a RateLimitContext to provide additional
+// limit. It also returns a RateLimitResult to provide additional
 // information about the state of the RateLimiter.
 //
 // If the rate limit has not been exceeded, the underlying storage is
@@ -160,10 +162,10 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 // quantity could rate limit based on the size of a file upload in
 // megabytes. If quantity is 0, no update is performed allowing you
 // to "peek" at the state of the RateLimiter for a given key.
-func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitContext, error) {
+func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitResult, error) {
 	var tat, newTat, now time.Time
 	var ttl time.Duration
-	rlc := RateLimitContext{Limit: g.limit, RetryAfter: -1}
+	rlc := RateLimitResult{Limit: g.limit, RetryAfter: -1}
 	limited := false
 
 	i := 0

@@ -5,11 +5,16 @@ HTTP endpoints.
 
 ## Installation
 
+throttled uses gopkg.in for semantic versioning:
 `go get gopkg.in/throttled/throttled.v0`
 
 As of July 27, 2015, the package is located under its own Github
-organization.  Please adjust your imports to
+organization. Please adjust your imports to
 `gopkg.in/throttled/throttled.v0`.
+
+The 1.x release series is compatible with the original, unversioned
+library written by [Martin Angers][puerkitobio]. There is a
+[blog post explaining that version's usage on 0value.com][blog].
 
 ## Documentation
 
@@ -32,13 +37,32 @@ up to 5 additional requests:
 
 	http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
 
-## Versioning
+## Contributing
 
-throttled uses gopkg.in for semantic versioning. 
+Since throttled uses gopkg.in for versioning, running `go get` against
+a fork or cloning from Github to the default path will break
+imports. Instead, use the following process for setting up your
+environment and contributing:
 
-The 1.x release series is compatible with the original, unversioned
-library written by [Martin Angers][puerkitobio]. There is a
-[blog post explaining that version's usage on 0value.com][blog].
+```sh
+# Retrieve the source and dependencies.
+go get gopkg.in/throttled/throttled.v0/...
+
+# Fork the project on Github. For all following directions replace
+# <username> with your Github username. Add your fork as a remote.
+cd $GOPATH/src/gopkg.in/throttled/throttled.v0
+git remote add fork git@github.com:<username>/throttled.git
+
+# Create a branch, make your changes, test them and commit.
+git checkout -b my-new-feature
+# <do some work>
+make test 
+git commit -a
+git push -u fork my-new-feature
+```
+
+When your changes are ready, [open a pull request][pr] using "compare
+across forks".
 
 ## License
 
@@ -48,3 +72,4 @@ The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and Contributo
 [bsd]: https://opensource.org/licenses/BSD-3-Clause
 [doc]: https://godoc.org/gopkg.in/throttled/throttled.v0
 [puerkitobio]: https://github.com/puerkitobio/
+[pr]: https://github.com/throttled/throttled/compare
