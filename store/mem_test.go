@@ -3,7 +3,7 @@ package store_test
 import (
 	"testing"
 
-	"gopkg.in/throttled/throttled.v0/store"
+	"gopkg.in/throttled/throttled.v1/store"
 )
 
 func TestMemStoreLRU(t *testing.T) {

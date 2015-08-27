@@ -6,7 +6,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"gopkg.in/throttled/throttled.v0/store"
+	"gopkg.in/throttled/throttled.v1/store"
 )
 
 const (

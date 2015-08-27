@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/throttled/throttled.v0"
-	"gopkg.in/throttled/throttled.v0/store"
+	"gopkg.in/throttled/throttled.v1"
+	"gopkg.in/throttled/throttled.v1/store"
 )
 
 const deniedStatus = 429

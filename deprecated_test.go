@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"gopkg.in/throttled/throttled.v0"
-	"gopkg.in/throttled/throttled.v0/store"
+	"gopkg.in/throttled/throttled.v1"
+	"gopkg.in/throttled/throttled.v1/store"
 )
 
 // Ensure that the current implementation remains compatible with the

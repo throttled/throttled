@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/throttled/throttled.v0"
-	"gopkg.in/throttled/throttled.v0/store"
+	"gopkg.in/throttled/throttled.v1"
+	"gopkg.in/throttled/throttled.v1/store"
 )
 
 var myHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

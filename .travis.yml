@@ -15,7 +15,7 @@ install:
   # otherwise Go 1.4+ complains about incorrect import paths.
   - export GOPKG_DIR=$GOPATH/src/gopkg.in/throttled
   - mkdir -p $GOPKG_DIR
-  - mv $TRAVIS_BUILD_DIR $GOPKG_DIR/throttled.v0
-  - cd $GOPKG_DIR/throttled.v0
+  - mv $TRAVIS_BUILD_DIR $GOPKG_DIR/throttled.v1
+  - cd $GOPKG_DIR/throttled.v1
 
 script: make

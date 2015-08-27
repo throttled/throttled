@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/throttled/throttled.v0"
+	"gopkg.in/throttled/throttled.v1"
 )
 
 func storeTest(t *testing.T, st throttled.GCRAStore) {
