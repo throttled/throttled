@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
-	"github.com/throttled/throttled"
-	"github.com/throttled/throttled/store"
+	"gopkg.in/throttled/throttled.v1"
+	"gopkg.in/throttled/throttled.v1/store"
 )
 
 var (

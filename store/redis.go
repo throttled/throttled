@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/garyburd/redigo/redis"
-	"github.com/throttled/throttled"
+	"gopkg.in/throttled/throttled.v1"
 )
 
 // redisStore implements a Redis-based store.
