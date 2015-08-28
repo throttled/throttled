@@ -1,20 +1,26 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v1?status.png)](https://godoc.org/gopkg.in/throttled/throttled.v1)
+# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v2?status.png)](https://godoc.org/gopkg.in/throttled/throttled.v2)
 
 Package throttled implements rate limiting access to resources such as
 HTTP endpoints.
 
+The 2.0.0 release made some major changes to the throttled API. If
+this change broke your code in problematic ways or you wish a feature
+of the old API had been retained, please open an issue.  We don't
+guarantee any particular changes but would like to hear more about
+what our users need. Thanks!
+
 ## Installation
 
 throttled uses gopkg.in for semantic versioning:
-`go get gopkg.in/throttled/throttled.v1`
+`go get gopkg.in/throttled/throttled.v2`
 
 As of July 27, 2015, the package is located under its own Github
 organization. Please adjust your imports to
-`gopkg.in/throttled/throttled.v1`.
+`gopkg.in/throttled/throttled.v2`.
 
 The 1.x release series is compatible with the original, unversioned
 library written by [Martin Angers][puerkitobio]. There is a
-[blog post explaining that version's usage on 0value.com][blog].
+[blog post explaining that version's usage on 0value.com][blog]. 
 
 ## Documentation
 
@@ -50,11 +56,11 @@ environment and contributing:
 
 ```sh
 # Retrieve the source and dependencies.
-go get gopkg.in/throttled/throttled.v1/...
+go get gopkg.in/throttled/throttled.v2/...
 
 # Fork the project on Github. For all following directions replace
 # <username> with your Github username. Add your fork as a remote.
-cd $GOPATH/src/gopkg.in/throttled/throttled.v1
+cd $GOPATH/src/gopkg.in/throttled/throttled.v2
 git remote add fork git@github.com:<username>/throttled.git
 
 # Create a branch, make your changes, test them and commit.
@@ -74,6 +80,6 @@ The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and Contributo
 
 [blog]: http://0value.com/throttled--guardian-of-the-web-server
 [bsd]: https://opensource.org/licenses/BSD-3-Clause
-[doc]: https://godoc.org/gopkg.in/throttled/throttled.v1
+[doc]: https://godoc.org/gopkg.in/throttled/throttled.v2
 [puerkitobio]: https://github.com/puerkitobio/
 [pr]: https://github.com/throttled/throttled/compare

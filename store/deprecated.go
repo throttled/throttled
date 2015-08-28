@@ -1,11 +1,11 @@
 // Package store contains deprecated aliases for subpackages
-package store // import "gopkg.in/throttled/throttled.v1/store"
+package store // import "gopkg.in/throttled/throttled.v2/store"
 
 import (
 	"github.com/garyburd/redigo/redis"
 
-	"gopkg.in/throttled/throttled.v1/store/memstore"
-	"gopkg.in/throttled/throttled.v1/store/redigostore"
+	"gopkg.in/throttled/throttled.v2/store/memstore"
+	"gopkg.in/throttled/throttled.v2/store/redigostore"
 )
 
 // DEPRECATED. NewMemStore is a compatible alias for mem.New

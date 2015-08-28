@@ -6,8 +6,8 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"gopkg.in/throttled/throttled.v1/store/redigostore"
-	"gopkg.in/throttled/throttled.v1/store/storetest"
+	"gopkg.in/throttled/throttled.v2/store/redigostore"
+	"gopkg.in/throttled/throttled.v2/store/storetest"
 )
 
 const (

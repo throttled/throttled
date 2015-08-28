@@ -1,5 +1,5 @@
 // Package storetest provides a helper for testing throttled stores.
-package storetest // import "gopkg.in/throttled/throttled.v1/store/storetest"
+package storetest // import "gopkg.in/throttled/throttled.v2/store/storetest"
 
 import (
 	"math/rand"
@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/throttled/throttled.v1"
+	"gopkg.in/throttled/throttled.v2"
 )
 
 // TestGCRAStore tests the behavior of a GCRAStore implementation for
