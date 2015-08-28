@@ -1,9 +1,11 @@
-package throttled
+package throttled_test
 
 import (
 	"net/http"
 	"net/url"
 	"testing"
+
+	"gopkg.in/throttled/throttled.v1"
 )
 
 func TestVaryBy(t *testing.T) {
@@ -13,34 +15,34 @@ func TestVaryBy(t *testing.T) {
 	}
 	ck := &http.Cookie{Name: "ssn", Value: "test"}
 	cases := []struct {
-		vb *VaryBy
+		vb *throttled.VaryBy
 		r  *http.Request
 		k  string
 	}{
 		0: {nil, &http.Request{}, ""},
-		1: {&VaryBy{RemoteAddr: true}, &http.Request{RemoteAddr: "::"}, "::\n"},
+		1: {&throttled.VaryBy{RemoteAddr: true}, &http.Request{RemoteAddr: "::"}, "::\n"},
 		2: {
-			&VaryBy{Method: true, Path: true},
+			&throttled.VaryBy{Method: true, Path: true},
 			&http.Request{Method: "POST", URL: u},
 			"post\n/test/path\n",
 		},
 		3: {
-			&VaryBy{Headers: []string{"Content-length"}},
+			&throttled.VaryBy{Headers: []string{"Content-length"}},
 			&http.Request{Header: http.Header{"Content-Type": []string{"text/plain"}, "Content-Length": []string{"123"}}},
 			"123\n",
 		},
 		4: {
-			&VaryBy{Separator: ",", Method: true, Headers: []string{"Content-length"}, Params: []string{"q", "user"}},
+			&throttled.VaryBy{Separator: ",", Method: true, Headers: []string{"Content-length"}, Params: []string{"q", "user"}},
 			&http.Request{Method: "GET", Header: http.Header{"Content-Type": []string{"text/plain"}, "Content-Length": []string{"123"}}, Form: url.Values{"q": []string{"s"}, "pwd": []string{"secret"}, "user": []string{"test"}}},
 			"get,123,s,test,",
 		},
 		5: {
-			&VaryBy{Cookies: []string{"ssn"}},
+			&throttled.VaryBy{Cookies: []string{"ssn"}},
 			&http.Request{Header: http.Header{"Cookie": []string{ck.String()}}},
 			"test\n",
 		},
 		6: {
-			&VaryBy{Cookies: []string{"ssn"}, RemoteAddr: true, Custom: func(r *http.Request) string {
+			&throttled.VaryBy{Cookies: []string{"ssn"}, RemoteAddr: true, Custom: func(r *http.Request) string {
 				return "blah"
 			}},
 			&http.Request{Header: http.Header{"Cookie": []string{ck.String()}}},

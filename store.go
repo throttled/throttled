@@ -1,31 +1,34 @@
 package throttled
 
 import (
-	"errors"
 	"time"
 )
 
-// The error returned if the key does not exist in the Store.
-var ErrNoSuchKey = errors.New("throttled: no such key")
-
-// Store is the interface to implement to store the RateLimit state (number
-// of requests per key, time-to-live or creation timestamp).
-type Store interface {
-	// Incr increments the count for the specified key and returns the new value along
-	// with the number of seconds remaining. It may return an error
-	// if the operation fails.
+// GCRAStore is the interface to implement to store state for a GCRA
+// rate limiter
+type GCRAStore interface {
+	// GetWithTime returns the value of the key if it is in the store
+	// or -1 if it does not exist. It also returns the current time at
+	// the Store. The time must be representable as a positive int64
+	// of nanoseconds since the epoch.
 	//
-	// The method may return ErrNoSuchKey if the key to increment does not exist,
-	// in which case Reset will be called to initialize the value.
-	Incr(string, time.Duration) (int, int, error)
+	// GCRA assumes that all instances sharing the same Store also
+	// share the same clock. Using separate clocks will work if the
+	// skew is small but not recommended in practice unless you're
+	// lucky enough to be hooked up to GPS or atomic clocks.
+	GetWithTime(key string) (int64, time.Time, error)
 
-	// Reset resets the key to 1 with the specified window duration. It must create the
-	// key if it doesn't exist. It returns an error if it fails.
-	Reset(string, time.Duration) error
-}
+	// SetIfNotExistsWithTTL sets the value of key only if it is not
+	// already set in the store it returns whether a new value was
+	// set. If the store supports expiring keys and a new value was
+	// set, the key will expire after the provided ttl.
+	SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error)
 
-// RemainingSeconds is a helper function that returns the number of seconds
-// remaining from an absolute timestamp in UTC.
-func RemainingSeconds(ts time.Time, window time.Duration) int {
-	return int((window - time.Now().UTC().Sub(ts)).Seconds())
+	// CompareAndSwapWithTTL atomically compares the value at key to
+	// the old value. If it matches, it sets it to the new value and
+	// returns true. Otherwise, it returns false. If the key does not
+	// exist in the store, it returns false with no error. If the
+	// store supports expiring keys and the swap succeeded, the key
+	// will expire after the provided ttl.
+	CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error)
 }
