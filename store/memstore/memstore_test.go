@@ -1,14 +1,14 @@
-package mem_test
+package memstore_test
 
 import (
 	"testing"
 
-	"gopkg.in/throttled/throttled.v1/store/mem"
+	"gopkg.in/throttled/throttled.v1/store/memstore"
 	"gopkg.in/throttled/throttled.v1/store/storetest"
 )
 
 func TestMemStoreLRU(t *testing.T) {
-	st, err := mem.New(10)
+	st, err := memstore.New(10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -16,7 +16,7 @@ func TestMemStoreLRU(t *testing.T) {
 }
 
 func TestMemStoreUnlimited(t *testing.T) {
-	st, err := mem.New(10)
+	st, err := memstore.New(10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,7 +24,7 @@ func TestMemStoreUnlimited(t *testing.T) {
 }
 
 func BenchmarkMemStoreLRU(b *testing.B) {
-	st, err := mem.New(10)
+	st, err := memstore.New(10)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -32,7 +32,7 @@ func BenchmarkMemStoreLRU(b *testing.B) {
 }
 
 func BenchmarkMemStoreUnlimited(b *testing.B) {
-	st, err := mem.New(0)
+	st, err := memstore.New(0)
 	if err != nil {
 		b.Fatal(err)
 	}

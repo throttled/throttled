@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gopkg.in/throttled/throttled.v1"
-	"gopkg.in/throttled/throttled.v1/store/mem"
+	"gopkg.in/throttled/throttled.v1/store/memstore"
 )
 
 const deniedStatus = 429
@@ -68,7 +68,7 @@ func TestRateLimit(t *testing.T) {
 		14: {start.Add(9500 * time.Millisecond), 5, 2, 3 * time.Second, 3 * time.Second, true},
 	}
 
-	mst, err := mem.New(0)
+	mst, err := memstore.New(0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestRateLimit(t *testing.T) {
 
 func TestRateLimitUpdateFailures(t *testing.T) {
 	rq := throttled.RateQuota{throttled.PerSec(1), 1}
-	mst, err := mem.New(0)
+	mst, err := memstore.New(0)
 	if err != nil {
 		t.Fatal(err)
 	}

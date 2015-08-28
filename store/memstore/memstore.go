@@ -1,5 +1,5 @@
-// Package mem offers an in-memory store implementation for throttled.
-package mem // import "gopkg.in/throttled/throttled.v1/store/mem"
+// Package memstore offers an in-memory store implementation for throttled.
+package memstore // import "gopkg.in/throttled/throttled.v1/store/memstore"
 
 import (
 	"sync"
@@ -9,11 +9,11 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
-// Store is an in-memory store implementation for throttled. It
+// MemStore is an in-memory store implementation for throttled. It
 // supports evicting the least recently used keys to control memory
 // usage. It is stored in memory in the current process and thus
 // doesn't share state with other rate limiters.
-type Store struct {
+type MemStore struct {
 	sync.RWMutex
 	keys *lru.Cache
 	m    map[string]*int64
@@ -24,8 +24,8 @@ type Store struct {
 // an LRU algorithm to evict older keys to make room for newer
 // ones. If maxKeys <= 0, there is no limit on the number of keys,
 // which may use an unbounded amount of memory.
-func New(maxKeys int) (*Store, error) {
-	var m *Store
+func New(maxKeys int) (*MemStore, error) {
+	var m *MemStore
 
 	if maxKeys > 0 {
 		keys, err := lru.New(maxKeys)
@@ -33,11 +33,11 @@ func New(maxKeys int) (*Store, error) {
 			return nil, err
 		}
 
-		m = &Store{
+		m = &MemStore{
 			keys: keys,
 		}
 	} else {
-		m = &Store{
+		m = &MemStore{
 			m: make(map[string]*int64),
 		}
 	}
@@ -47,7 +47,7 @@ func New(maxKeys int) (*Store, error) {
 // GetWithTime returns the value of the key if it is in the store or
 // -1 if it does not exist. It also returns the current local time on
 // the machine.
-func (ms *Store) GetWithTime(key string) (int64, time.Time, error) {
+func (ms *MemStore) GetWithTime(key string) (int64, time.Time, error) {
 	now := time.Now()
 	valP, ok := ms.get(key, false)
 
@@ -61,7 +61,7 @@ func (ms *Store) GetWithTime(key string) (int64, time.Time, error) {
 // SetIfNotExistsWithTTL sets the value of key only if it is not
 // already set in the store it returns whether a new value was set. It
 // ignores the ttl.
-func (ms *Store) SetIfNotExistsWithTTL(key string, value int64, _ time.Duration) (bool, error) {
+func (ms *MemStore) SetIfNotExistsWithTTL(key string, value int64, _ time.Duration) (bool, error) {
 	_, ok := ms.get(key, false)
 
 	if ok {
@@ -94,7 +94,7 @@ func (ms *Store) SetIfNotExistsWithTTL(key string, value int64, _ time.Duration)
 // old value. If it matches, it sets it to the new value and returns
 // true. Otherwise, it returns false. If the key does not exist in the
 // store, it returns false with no error. It ignores the ttl.
-func (ms *Store) CompareAndSwapWithTTL(key string, old, new int64, _ time.Duration) (bool, error) {
+func (ms *MemStore) CompareAndSwapWithTTL(key string, old, new int64, _ time.Duration) (bool, error) {
 	valP, ok := ms.get(key, false)
 
 	if !ok {
@@ -104,7 +104,7 @@ func (ms *Store) CompareAndSwapWithTTL(key string, old, new int64, _ time.Durati
 	return atomic.CompareAndSwapInt64(valP, old, new), nil
 }
 
-func (ms *Store) get(key string, locked bool) (*int64, bool) {
+func (ms *MemStore) get(key string, locked bool) (*int64, bool) {
 	var valP *int64
 	var ok bool
 

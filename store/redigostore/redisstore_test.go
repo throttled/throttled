@@ -1,4 +1,4 @@
-package redis_test
+package redigostore_test
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	redisstore "gopkg.in/throttled/throttled.v1/store/redis"
+	"gopkg.in/throttled/throttled.v1/store/redigostore"
 	"gopkg.in/throttled/throttled.v1/store/storetest"
 )
 
@@ -61,7 +61,7 @@ func clearRedis(c redis.Conn) error {
 	return nil
 }
 
-func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *redisstore.Store) {
+func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *redigostore.RedigoStore) {
 	pool := getPool()
 	c := pool.Get()
 
@@ -75,7 +75,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *redisstore.Store
 		tb.Fatal(err)
 	}
 
-	st, err := redisstore.New(pool, redisTestPrefix, redisTestDB)
+	st, err := redigostore.New(pool, redisTestPrefix, redisTestDB)
 	if err != nil {
 		c.Close()
 		tb.Fatal(err)

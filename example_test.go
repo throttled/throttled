@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"gopkg.in/throttled/throttled.v1"
-	"gopkg.in/throttled/throttled.v1/store/mem"
+	"gopkg.in/throttled/throttled.v1/store/memstore"
 )
 
 var myHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -16,13 +16,13 @@ var myHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 // for rate-limiting access to an http.Handler to 20 requests per path
 // per minute with a maximum burst of 5 requests.
 func ExampleHTTPRateLimiter() {
-	rq := throttled.RateQuota{throttled.PerMin(20), 5}
-	st, err := mem.New(65536)
+	store, err := memstore.New(65536)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	rateLimiter, err := throttled.NewGCRARateLimiter(st, rq)
+	quota := throttled.RateQuota{throttled.PerMin(20), 5}
+	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}

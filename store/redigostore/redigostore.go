@@ -1,5 +1,5 @@
-// Package redis offers Redis-based store implementation for throttled.
-package redis // import "gopkg.in/throttled/throttled.v1/store/redis"
+// Package redigostore offers Redis-based store implementation for throttled using redigo.
+package redigostore // import "gopkg.in/throttled/throttled.v1/store/redigostore"
 
 import (
 	"strings"
@@ -27,8 +27,8 @@ return 1
 `
 )
 
-// Store implements a Redis-based store.
-type Store struct {
+// RedigoStore implements a Redis-based store using redigo.
+type RedigoStore struct {
 	pool   *redis.Pool
 	prefix string
 	db     int
@@ -40,8 +40,8 @@ type Store struct {
 // be selected to store the keys. Any updating operations will reset
 // the key TTL to the provided value rounded down to the nearest
 // second. Depends on Redis 2.6+ for EVAL support.
-func New(pool *redis.Pool, keyPrefix string, db int) (*Store, error) {
-	return &Store{
+func New(pool *redis.Pool, keyPrefix string, db int) (*RedigoStore, error) {
+	return &RedigoStore{
 		pool:   pool,
 		prefix: keyPrefix,
 		db:     db,
@@ -51,7 +51,7 @@ func New(pool *redis.Pool, keyPrefix string, db int) (*Store, error) {
 // GetWithTime returns the value of the key if it is in the store
 // or -1 if it does not exist. It also returns the current time at
 // the redis server to microsecond precision.
-func (r *Store) GetWithTime(key string) (int64, time.Time, error) {
+func (r *RedigoStore) GetWithTime(key string) (int64, time.Time, error) {
 	var now time.Time
 
 	key = r.prefix + key
@@ -90,7 +90,7 @@ func (r *Store) GetWithTime(key string) (int64, time.Time, error) {
 // already set in the store it returns whether a new value was set.
 // If a new value was set, the ttl in the key is also set, though this
 // operation is not performed atomically.
-func (r *Store) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
+func (r *RedigoStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 
 	conn, err := r.getConn()
@@ -120,7 +120,7 @@ func (r *Store) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration
 // true. Otherwise, it returns false. If the key does not exist in the
 // store, it returns false with no error. If the swap succeeds, the
 // ttl for the key is updated atomically.
-func (r *Store) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
+func (r *RedigoStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 	conn, err := r.getConn()
 	if err != nil {
@@ -141,7 +141,7 @@ func (r *Store) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Durat
 }
 
 // Select the specified database index.
-func (r *Store) getConn() (redis.Conn, error) {
+func (r *RedigoStore) getConn() (redis.Conn, error) {
 	conn := r.pool.Get()
 
 	// Select the specified database

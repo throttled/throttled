@@ -4,12 +4,12 @@ package store // import "gopkg.in/throttled/throttled.v1/store"
 import (
 	"github.com/garyburd/redigo/redis"
 
-	memstore "gopkg.in/throttled/throttled.v1/store/mem"
-	redisstore "gopkg.in/throttled/throttled.v1/store/redis"
+	"gopkg.in/throttled/throttled.v1/store/memstore"
+	"gopkg.in/throttled/throttled.v1/store/redigostore"
 )
 
 // DEPRECATED. NewMemStore is a compatible alias for mem.New
-func NewMemStore(maxKeys int) *memstore.Store {
+func NewMemStore(maxKeys int) *memstore.MemStore {
 	st, err := memstore.New(maxKeys)
 	if err != nil {
 		// As of this writing, `lru.New` can only return an error if you pass
@@ -20,8 +20,8 @@ func NewMemStore(maxKeys int) *memstore.Store {
 }
 
 // DEPRECATED. NewMemStore is a compatible alias for redis.New
-func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) *redisstore.Store {
-	st, err := redisstore.New(pool, keyPrefix, db)
+func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) *redigostore.RedigoStore {
+	st, err := redigostore.New(pool, keyPrefix, db)
 	if err != nil {
 		// As of this writing, creating a Redis store never returns an error
 		// so this should be safe while providing some ability to return errors
