@@ -1,4 +1,5 @@
-package store_test
+// Package storetest provides a helper for testing throttled stores.
+package storetest // import "gopkg.in/throttled/throttled.v1/store/storetest"
 
 import (
 	"math/rand"
@@ -10,7 +11,10 @@ import (
 	"gopkg.in/throttled/throttled.v1"
 )
 
-func storeTest(t *testing.T, st throttled.GCRAStore) {
+// TestGCRAStore tests the behavior of a GCRAStore implementation for
+// compliance with the throttled API. It does not require support
+// for TTLs.
+func TestGCRAStore(t *testing.T, st throttled.GCRAStore) {
 	// GetWithTime a missing key
 	if have, _, err := st.GetWithTime("foo"); err != nil {
 		t.Fatal(err)
@@ -91,7 +95,8 @@ func storeTest(t *testing.T, st throttled.GCRAStore) {
 	}
 }
 
-func storeTTLTest(t *testing.T, st throttled.GCRAStore) {
+// TestGCRAStoreTTL tests the behavior of TTLs in a GCRAStore implementation.
+func TestGCRAStoreTTL(t *testing.T, st throttled.GCRAStore) {
 	ttl := time.Second
 	want := int64(1)
 	key := "ttl"
@@ -116,7 +121,10 @@ func storeTTLTest(t *testing.T, st throttled.GCRAStore) {
 	}
 }
 
-func storeBenchmark(b *testing.B, st throttled.GCRAStore) {
+// BenchmarkGCRAStore runs parallel benchmarks against a GCRAStore implementation.
+// Aside from being useful for performance testing, this is useful for finding
+// race conditions with the Go race detector.
+func BenchmarkGCRAStore(b *testing.B, st throttled.GCRAStore) {
 	seed := int64(42)
 	var attempts, updates int64
 

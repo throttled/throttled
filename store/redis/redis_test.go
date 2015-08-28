@@ -1,4 +1,4 @@
-package store_test
+package redis_test
 
 import (
 	"testing"
@@ -6,7 +6,8 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 
-	"gopkg.in/throttled/throttled.v1/store"
+	redisstore "gopkg.in/throttled/throttled.v1/store/redis"
+	"gopkg.in/throttled/throttled.v1/store/storetest"
 )
 
 const (
@@ -35,8 +36,8 @@ func TestRedisStore(t *testing.T) {
 	defer clearRedis(c)
 
 	clearRedis(c)
-	storeTest(t, st)
-	storeTTLTest(t, st)
+	storetest.TestGCRAStore(t, st)
+	storetest.TestGCRAStoreTTL(t, st)
 }
 
 func BenchmarkRedisStore(b *testing.B) {
@@ -44,7 +45,7 @@ func BenchmarkRedisStore(b *testing.B) {
 	defer c.Close()
 	defer clearRedis(c)
 
-	storeBenchmark(b, st)
+	storetest.BenchmarkGCRAStore(b, st)
 }
 
 func clearRedis(c redis.Conn) error {
@@ -60,7 +61,7 @@ func clearRedis(c redis.Conn) error {
 	return nil
 }
 
-func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *store.RedisStore) {
+func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *redisstore.Store) {
 	pool := getPool()
 	c := pool.Get()
 
@@ -74,7 +75,11 @@ func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *store.RedisStore
 		tb.Fatal(err)
 	}
 
-	st := store.NewRedisStore(pool, redisTestPrefix, redisTestDB)
+	st, err := redisstore.New(pool, redisTestPrefix, redisTestDB)
+	if err != nil {
+		c.Close()
+		tb.Fatal(err)
+	}
 
 	return c, st
 }

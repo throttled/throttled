@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"gopkg.in/throttled/throttled.v1"
-	"gopkg.in/throttled/throttled.v1/store"
+	"gopkg.in/throttled/throttled.v1/store/mem"
 )
 
 const deniedStatus = 429
@@ -68,7 +68,12 @@ func TestRateLimit(t *testing.T) {
 		14: {start.Add(9500 * time.Millisecond), 5, 2, 3 * time.Second, 3 * time.Second, true},
 	}
 
-	st := testStore{store: store.NewMemStore(0)}
+	mst, err := mem.New(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := testStore{store: mst}
+
 	rl, err := throttled.NewGCRARateLimiter(&st, rq)
 	if err != nil {
 		t.Fatal(err)
@@ -107,7 +112,11 @@ func TestRateLimit(t *testing.T) {
 
 func TestRateLimitUpdateFailures(t *testing.T) {
 	rq := throttled.RateQuota{throttled.PerSec(1), 1}
-	st := testStore{store: store.NewMemStore(0), failUpdates: true}
+	mst, err := mem.New(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := testStore{store: mst, failUpdates: true}
 	rl, err := throttled.NewGCRARateLimiter(&st, rq)
 	if err != nil {
 		t.Fatal(err)

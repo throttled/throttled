@@ -23,8 +23,12 @@ example demonstrates the usage of HTTPLimiter for rate-limiting access
 to an http.Handler to 20 requests per path per minute with bursts of
 up to 5 additional requests:
 
-	st := store.NewMemStore(65536)
 	rq := throttled.RateQuota{throttled.PerMin(20), 5}
+	st, err := mem.New(65536)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	rateLimiter, err := throttled.NewGCRARateLimiter(st, rq)
 	if err != nil {
 		log.Fatal(err)

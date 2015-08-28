@@ -1,4 +1,5 @@
-package store
+// Package mem offers an in-memory store implementation for throttled.
+package mem // import "gopkg.in/throttled/throttled.v1/store/mem"
 
 import (
 	"sync"
@@ -8,49 +9,45 @@ import (
 	"github.com/hashicorp/golang-lru"
 )
 
-// MemStore is an in-memory store implementation for throttled. It
+// Store is an in-memory store implementation for throttled. It
 // supports evicting the least recently used keys to control memory
 // usage. It is stored in memory in the current process and thus
 // doesn't share state with other rate limiters.
-type MemStore struct {
+type Store struct {
 	sync.RWMutex
 	keys *lru.Cache
 	m    map[string]*int64
 }
 
-// NewMemStore initializes a MemStore. If maxKeys > 0, the number of
-// different keys is restricted to the specified amount. In this case,
-// it uses an LRU algorithm to evict older keys to make room for newer
+// New initializes a Store. If maxKeys > 0, the number of different
+// keys is restricted to the specified amount. In this case, it uses
+// an LRU algorithm to evict older keys to make room for newer
 // ones. If maxKeys <= 0, there is no limit on the number of keys,
 // which may use an unbounded amount of memory.
-func NewMemStore(maxKeys int) *MemStore {
-	var m *MemStore
+func New(maxKeys int) (*Store, error) {
+	var m *Store
 
 	if maxKeys > 0 {
 		keys, err := lru.New(maxKeys)
 		if err != nil {
-			// The interface for `NewMemStore` is part of the public interface so
-			// adding an error return would be a breaking change so we panic instead.
-			// As of this writing, `lru.New` can only return an error if you pass
-			// maxKeys <= 0 so this should never occur.
-			panic(err)
+			return nil, err
 		}
 
-		m = &MemStore{
+		m = &Store{
 			keys: keys,
 		}
 	} else {
-		m = &MemStore{
+		m = &Store{
 			m: make(map[string]*int64),
 		}
 	}
-	return m
+	return m, nil
 }
 
 // GetWithTime returns the value of the key if it is in the store or
 // -1 if it does not exist. It also returns the current local time on
 // the machine.
-func (ms *MemStore) GetWithTime(key string) (int64, time.Time, error) {
+func (ms *Store) GetWithTime(key string) (int64, time.Time, error) {
 	now := time.Now()
 	valP, ok := ms.get(key, false)
 
@@ -64,7 +61,7 @@ func (ms *MemStore) GetWithTime(key string) (int64, time.Time, error) {
 // SetIfNotExistsWithTTL sets the value of key only if it is not
 // already set in the store it returns whether a new value was set. It
 // ignores the ttl.
-func (ms *MemStore) SetIfNotExistsWithTTL(key string, value int64, _ time.Duration) (bool, error) {
+func (ms *Store) SetIfNotExistsWithTTL(key string, value int64, _ time.Duration) (bool, error) {
 	_, ok := ms.get(key, false)
 
 	if ok {
@@ -97,7 +94,7 @@ func (ms *MemStore) SetIfNotExistsWithTTL(key string, value int64, _ time.Durati
 // old value. If it matches, it sets it to the new value and returns
 // true. Otherwise, it returns false. If the key does not exist in the
 // store, it returns false with no error. It ignores the ttl.
-func (ms *MemStore) CompareAndSwapWithTTL(key string, old, new int64, _ time.Duration) (bool, error) {
+func (ms *Store) CompareAndSwapWithTTL(key string, old, new int64, _ time.Duration) (bool, error) {
 	valP, ok := ms.get(key, false)
 
 	if !ok {
@@ -107,7 +104,7 @@ func (ms *MemStore) CompareAndSwapWithTTL(key string, old, new int64, _ time.Dur
 	return atomic.CompareAndSwapInt64(valP, old, new), nil
 }
 
-func (ms *MemStore) get(key string, locked bool) (*int64, bool) {
+func (ms *Store) get(key string, locked bool) (*int64, bool) {
 	var valP *int64
 	var ok bool
 
