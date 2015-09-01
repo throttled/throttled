@@ -74,7 +74,7 @@ func (r *RedigoStore) GetWithTime(key string) (int64, time.Time, error) {
 	if _, err := redis.Scan(timeReply, &s, &ms); err != nil {
 		return 0, now, err
 	}
-	now = time.Unix(s, ms*int64(time.Millisecond))
+	now = time.Unix(s, ms*int64(time.Microsecond))
 
 	v, err := redis.Int64(conn.Receive())
 	if err == redis.ErrNil {
