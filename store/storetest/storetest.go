@@ -31,12 +31,22 @@ func TestGCRAStore(t *testing.T, st throttled.GCRAStore) {
 		t.Errorf("expected SetIfNotExists on an empty key to succeed")
 	}
 
+	before := time.Now()
+
 	if have, now, err := st.GetWithTime("foo"); err != nil {
 		t.Fatal(err)
 	} else if have != want {
 		t.Errorf("expected GetWithTime to return %d but got %d", want, have)
 	} else if now.UnixNano() <= 0 {
 		t.Errorf("expected GetWithTime to return a time representable representable as a positive int64 of nanoseconds since the epoch")
+	} else if now.Before(before) || now.After(time.Now()) {
+		// Note that we make the assumption here that the store is running on
+		// the same machine as this test and thus shares a clock. This can be a
+		// little tricky in the case of Redis, which could be running
+		// elsewhere. The test assumes that it's running either locally on on
+		// Travis (where currently the Redis is available on localhost). If new
+		// test environments are procured, this may need to be revisited.
+		t.Errorf("expected GetWithTime to return a time between the time before the call and the time after the call")
 	}
 
 	// SetIfNotExists on an existing key
