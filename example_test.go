@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"gopkg.in/throttled/throttled.v2"
 	"gopkg.in/throttled/throttled.v2/store/memstore"
@@ -47,35 +48,24 @@ func ExampleGCRARateLimiter() {
 		log.Fatal(err)
 	}
 
-	// Maximum burst of 5 which refills at 20 tokens per minute.
-	quota := throttled.RateQuota{throttled.PerMin(20), 5}
+	// Maximum burst of 10 which gets a new token once every 5 minutes.
+	quota := throttled.RateQuota{throttled.PerHour(12), 10}
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Bucket based on the address of the origin request. This actually
-		// includes a remote port as well and as such, is not actually
-		// particularly useful for rate limiting, but does serve as a simple
-		// demonstration.
-		bucket := r.RemoteAddr
+	// Bucket according to the hour of the day (0-23). This has the effect of
+	// allowing a new burst of ten requests every hour, and with a consistent
+	// refill of a new token every 5 minutes.
+	bucket := fmt.Sprintf("per-hour:%v\n", time.Now().Hour())
 
-		// add one token to the bucket
-		limited, result, err := rateLimiter.RateLimit(bucket, 1)
-		if err != nil {
-			w.WriteHeader(500)
-			fmt.Fprintf(w, "Internal error: %v.", err.Error())
-		}
-
-		if limited {
-			w.WriteHeader(429)
-			fmt.Fprintf(w, "Rate limit exceeded. Please try again in %v.",
-				result.RetryAfter)
-		} else {
-			fmt.Fprintf(w, "Hello.")
-		}
-	})
-	http.ListenAndServe(":8080", nil)
+	limited, result, err := rateLimiter.RateLimit(bucket, 1)
+	if limited {
+		fmt.Printf("Rate limit exceeded. Please try again in %v.",
+			result.RetryAfter)
+	} else {
+		fmt.Printf("Operation successful.")
+	}
 }
