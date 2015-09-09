@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"gopkg.in/throttled/throttled.v2"
 	"gopkg.in/throttled/throttled.v2/store/memstore"
@@ -48,24 +47,56 @@ func ExampleGCRARateLimiter() {
 		log.Fatal(err)
 	}
 
-	// Maximum burst of 10 which gets a new token once every 5 minutes.
-	quota := throttled.RateQuota{throttled.PerHour(12), 10}
+	// Maximum burst of 5 which refills at 1 token per hour.
+	quota := throttled.RateQuota{throttled.PerHour(1), 5}
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Bucket according to the hour of the day (0-23). This has the effect of
-	// allowing a new burst of ten requests every hour, and with a consistent
-	// refill of a new token every 5 minutes.
-	bucket := fmt.Sprintf("per-hour:%v\n", time.Now().Hour())
+	// Bucket according to the our number i / 10 (so 1 falls into the bucket 0
+	// while 11 falls into the bucket 1). This has the effect of allowing a
+	// burst of 5 plus 1 (a single emission interval) on every ten iterations
+	// of the loop. See the output for better clarity here.
+	//
+	// We also refill the bucket at 1 token per hour, but that has no effect
+	// for the purposes of this example.
+	for i := 0; i < 20; i++ {
+		bucket := fmt.Sprintf("by-order:%v", i/10)
 
-	limited, result, err := rateLimiter.RateLimit(bucket, 1)
-	if limited {
-		fmt.Printf("Rate limit exceeded. Please try again in %v.",
-			result.RetryAfter)
-	} else {
-		fmt.Printf("Operation successful.")
+		limited, result, err := rateLimiter.RateLimit(bucket, 1)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if limited {
+			fmt.Printf("Bucket %v: FAILED. Rate limit exceeded.\n", bucket)
+		} else {
+			fmt.Printf("Bucket %v: Operation successful (remaining=%v).\n",
+			  bucket, result.Remaining)
+		}
 	}
+
+	// Output:
+	// Bucket by-order:0: Operation successful (remaining=5).
+	// Bucket by-order:0: Operation successful (remaining=4).
+	// Bucket by-order:0: Operation successful (remaining=3).
+	// Bucket by-order:0: Operation successful (remaining=2).
+	// Bucket by-order:0: Operation successful (remaining=1).
+	// Bucket by-order:0: Operation successful (remaining=0).
+	// Bucket by-order:0: FAILED. Rate limit exceeded.
+	// Bucket by-order:0: FAILED. Rate limit exceeded.
+	// Bucket by-order:0: FAILED. Rate limit exceeded.
+	// Bucket by-order:0: FAILED. Rate limit exceeded.
+	// Bucket by-order:1: Operation successful (remaining=5).
+	// Bucket by-order:1: Operation successful (remaining=4).
+	// Bucket by-order:1: Operation successful (remaining=3).
+	// Bucket by-order:1: Operation successful (remaining=2).
+	// Bucket by-order:1: Operation successful (remaining=1).
+	// Bucket by-order:1: Operation successful (remaining=0).
+	// Bucket by-order:1: FAILED. Rate limit exceeded.
+	// Bucket by-order:1: FAILED. Rate limit exceeded.
+	// Bucket by-order:1: FAILED. Rate limit exceeded.
+	// Bucket by-order:1: FAILED. Rate limit exceeded.
 }
