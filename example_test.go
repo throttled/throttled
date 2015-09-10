@@ -47,35 +47,57 @@ func ExampleGCRARateLimiter() {
 		log.Fatal(err)
 	}
 
-	// Maximum burst of 5 which refills at 20 tokens per minute.
-	quota := throttled.RateQuota{throttled.PerMin(20), 5}
+	// Maximum burst of 5 which refills at 1 token per hour.
+	quota := throttled.RateQuota{throttled.PerHour(1), 5}
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// Bucket based on the address of the origin request. This actually
-		// includes a remote port as well and as such, is not actually
-		// particularly useful for rate limiting, but does serve as a simple
-		// demonstration.
-		bucket := r.RemoteAddr
+	// Bucket according to the number i / 10 (so 1 falls into the bucket 0
+	// while 11 falls into the bucket 1). This has the effect of allowing a
+	// burst of 5 plus 1 (a single emission interval) on every ten iterations
+	// of the loop. See the output for better clarity here.
+	//
+	// We also refill the bucket at 1 token per hour, but that has no effect
+	// for the purposes of this example.
+	for i := 0; i < 20; i++ {
+		bucket := fmt.Sprintf("by-order:%v", i/10)
 
-		// add one token to the bucket
 		limited, result, err := rateLimiter.RateLimit(bucket, 1)
 		if err != nil {
-			w.WriteHeader(500)
-			fmt.Fprintf(w, "Internal error: %v.", err.Error())
+			log.Fatal(err)
 		}
 
 		if limited {
-			w.WriteHeader(429)
-			fmt.Fprintf(w, "Rate limit exceeded. Please try again in %v.",
-				result.RetryAfter)
+			fmt.Printf("Iteration %2v; bucket %v: FAILED. Rate limit exceeded.\n",
+				i, bucket)
 		} else {
-			fmt.Fprintf(w, "Hello.")
+			fmt.Printf("Iteration %2v; bucket %v: Operation successful (remaining=%v).\n",
+				i, bucket, result.Remaining)
 		}
-	})
-	http.ListenAndServe(":8080", nil)
+	}
+
+	// Output:
+	// Iteration  0; bucket by-order:0: Operation successful (remaining=5).
+	// Iteration  1; bucket by-order:0: Operation successful (remaining=4).
+	// Iteration  2; bucket by-order:0: Operation successful (remaining=3).
+	// Iteration  3; bucket by-order:0: Operation successful (remaining=2).
+	// Iteration  4; bucket by-order:0: Operation successful (remaining=1).
+	// Iteration  5; bucket by-order:0: Operation successful (remaining=0).
+	// Iteration  6; bucket by-order:0: FAILED. Rate limit exceeded.
+	// Iteration  7; bucket by-order:0: FAILED. Rate limit exceeded.
+	// Iteration  8; bucket by-order:0: FAILED. Rate limit exceeded.
+	// Iteration  9; bucket by-order:0: FAILED. Rate limit exceeded.
+	// Iteration 10; bucket by-order:1: Operation successful (remaining=5).
+	// Iteration 11; bucket by-order:1: Operation successful (remaining=4).
+	// Iteration 12; bucket by-order:1: Operation successful (remaining=3).
+	// Iteration 13; bucket by-order:1: Operation successful (remaining=2).
+	// Iteration 14; bucket by-order:1: Operation successful (remaining=1).
+	// Iteration 15; bucket by-order:1: Operation successful (remaining=0).
+	// Iteration 16; bucket by-order:1: FAILED. Rate limit exceeded.
+	// Iteration 17; bucket by-order:1: FAILED. Rate limit exceeded.
+	// Iteration 18; bucket by-order:1: FAILED. Rate limit exceeded.
+	// Iteration 19; bucket by-order:1: FAILED. Rate limit exceeded.
 }
