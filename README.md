@@ -14,14 +14,6 @@ what our users need. Thanks!
 throttled uses gopkg.in for semantic versioning:
 `go get gopkg.in/throttled/throttled.v2`
 
-As of July 27, 2015, the package is located under its own Github
-organization. Please adjust your imports to
-`gopkg.in/throttled/throttled.v2`.
-
-The 1.x release series is compatible with the original, unversioned
-library written by [Martin Angers][puerkitobio]. There is a
-[blog post explaining that version's usage on 0value.com][blog]. 
-
 ## Documentation
 
 API documentation is available on [godoc.org][doc]. The following
