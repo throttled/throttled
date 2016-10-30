@@ -118,10 +118,12 @@ func PerDay(n int) Rate { return Rate{24 * time.Hour / time.Duration(n), n} }
 // as for limiting the number of bytes uploaded.
 type GCRARateLimiter struct {
 	limit int
+
 	// Think of the DVT as our flexibility:
 	// How far can you deviate from the nominal equally spaced schedule?
 	// If you like leaky buckets, think about it as the size of your bucket.
 	delayVariationTolerance time.Duration
+
 	// Think of the emission interval as the time between events
 	// in the nominal equally spaced schedule. If you like leaky buckets,
 	// think of it as how frequently the bucket leaks one unit.
