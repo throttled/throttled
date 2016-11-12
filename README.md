@@ -1,4 +1,4 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.png)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v2?status.png)](https://godoc.org/gopkg.in/throttled/throttled.v2)
+# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.svg)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v2?status.svg)](https://godoc.org/gopkg.in/throttled/throttled.v2)
 
 Package throttled implements rate limiting access to resources such as
 HTTP endpoints.
@@ -21,23 +21,25 @@ example demonstrates the usage of HTTPLimiter for rate-limiting access
 to an http.Handler to 20 requests per path per minute with bursts of
 up to 5 additional requests:
 
-	store, err := memstore.New(65536)
-	if err != nil {
-		log.Fatal(err)
-	}
+```go
+store, err := memstore.New(65536)
+if err != nil {
+	log.Fatal(err)
+}
 
-	quota := throttled.RateQuota{throttled.PerMin(20), 5}
-	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
-	if err != nil {
-		log.Fatal(err)
-	}
+quota := throttled.RateQuota{throttled.PerMin(20), 5}
+rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+if err != nil {
+	log.Fatal(err)
+}
 
-	httpRateLimiter := throttled.HTTPRateLimiter{
-		RateLimiter: rateLimiter,
-		VaryBy:      &throttled.VaryBy{Path: true},
-	}
+httpRateLimiter := throttled.HTTPRateLimiter{
+	RateLimiter: rateLimiter,
+	VaryBy:      &throttled.VaryBy{Path: true},
+}
 
-	http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
+http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
+```
 
 ## Contributing
 
