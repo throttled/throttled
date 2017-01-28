@@ -70,7 +70,7 @@ across forks".
 
 ## License
 
-The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and Contributors.
+The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributors.
 
 [blog]: http://0value.com/throttled--guardian-of-the-web-server
 [bsd]: https://opensource.org/licenses/BSD-3-Clause
