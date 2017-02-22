@@ -1,7 +1,7 @@
 # Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.svg)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v2?status.svg)](https://godoc.org/gopkg.in/throttled/throttled.v2)
 
-Package throttled implements rate limiting access to resources such as
-HTTP endpoints.
+Package throttled implements rate limiting using the [generic cell rate
+algorithm][gcra] to limit access to resources such as HTTP endpoints.
 
 The 2.0.0 release made some major changes to the throttled API. If
 this change broke your code in problematic ways or you wish a feature
@@ -68,6 +68,11 @@ git push -u fork my-new-feature
 When your changes are ready, [open a pull request][pr] using "compare
 across forks".
 
+## Related Projects
+
+See [throttled/gcra][throttled-gcra] for a list of other projects related to
+rate limiting and GCRA.
+
 ## License
 
 The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributors.
@@ -75,5 +80,7 @@ The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributo
 [blog]: http://0value.com/throttled--guardian-of-the-web-server
 [bsd]: https://opensource.org/licenses/BSD-3-Clause
 [doc]: https://godoc.org/gopkg.in/throttled/throttled.v2
+[gcra]: https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
 [puerkitobio]: https://github.com/puerkitobio/
 [pr]: https://github.com/throttled/throttled/compare
+[throttled-gcra]: https://github.com/throttled/gcra
