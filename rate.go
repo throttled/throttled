@@ -84,13 +84,15 @@ type Rate struct {
 
 // RateQuota describes the number of requests allowed per time period.
 // MaxRate specified the maximum sustained rate of requests and must
-// be greater than zero.  MaxBurst defines the number of requests that
+// be greater than zero. MaxBurst defines the number of requests that
 // will be allowed to exceed the rate in a single burst and must be
 // greater than or equal to zero.
 //
 // Rate{PerSec(1), 0} would mean that after each request, no more
-// requests will be permitted for that client for one second. In
-// practice, you probably want to set MaxBurst >0 to provide some
+// requests will be permitted for that client for one second.
+// Rate{PerSec(2), 0} permits one request per 0.5 seconds rather than
+// two requests in one second.
+// In practice, you probably want to set MaxBurst >0 to provide some
 // flexibility to clients that only need to make a handful of
 // requests. In fact a MaxBurst of zero will *never* permit a request
 // with a quantity greater than one because it will immediately exceed
