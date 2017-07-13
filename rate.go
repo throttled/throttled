@@ -91,12 +91,11 @@ type Rate struct {
 // Rate{PerSec(1), 0} would mean that after each request, no more
 // requests will be permitted for that client for one second.
 // Rate{PerSec(2), 0} permits one request per 0.5 seconds rather than
-// two requests in one second.
-// In practice, you probably want to set MaxBurst >0 to provide some
-// flexibility to clients that only need to make a handful of
-// requests. In fact a MaxBurst of zero will *never* permit a request
-// with a quantity greater than one because it will immediately exceed
-// the limit.
+// two requests in one second. In practice, you probably want to set
+// MaxBurst >0 to provide some flexibility to clients that only need
+// to make a handful of requests. In fact a MaxBurst of zero will
+// *never* permit a request with a quantity greater than one because
+// it will immediately exceed the limit.
 type RateQuota struct {
 	MaxRate  Rate
 	MaxBurst int
