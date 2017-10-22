@@ -4,6 +4,8 @@ language: go
 
 go:
     - 1.7
+    - 1.8
+    - 1.9
     - tip
 
 notifications:
@@ -12,13 +14,6 @@ notifications:
 services:
   - redis-server
 
-install:
-  - make get-deps
-  # Move to the gopkg location that rather than the default clone location
-  # otherwise Go 1.4+ complains about incorrect import paths.
-  - export GOPKG_DIR=$GOPATH/src/gopkg.in/throttled
-  - mkdir -p $GOPKG_DIR
-  - mv $TRAVIS_BUILD_DIR $GOPKG_DIR/throttled.v2
-  - cd $GOPKG_DIR/throttled.v2
+install: make get-deps
 
 script: make
