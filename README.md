@@ -1,4 +1,4 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.svg)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/gopkg.in/throttled/throttled.v2?status.svg)](https://godoc.org/gopkg.in/throttled/throttled.v2)
+# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.svg)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.svg)](https://godoc.org/github.com/throttled/throttled)
 
 Package throttled implements rate limiting using the [generic cell rate
 algorithm][gcra] to limit access to resources such as HTTP endpoints.
@@ -11,8 +11,9 @@ what our users need. Thanks!
 
 ## Installation
 
-throttled uses gopkg.in for semantic versioning:
-`go get gopkg.in/throttled/throttled.v2`
+```sh
+go get -u github.com/throttled/throttled`
+```
 
 ## Documentation
 
@@ -41,33 +42,6 @@ httpRateLimiter := throttled.HTTPRateLimiter{
 http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
 ```
 
-## Contributing
-
-Since throttled uses gopkg.in for versioning, running `go get` against
-a fork or cloning from Github to the default path will break
-imports. Instead, use the following process for setting up your
-environment and contributing:
-
-```sh
-# Retrieve the source and dependencies.
-go get gopkg.in/throttled/throttled.v2/...
-
-# Fork the project on Github. For all following directions replace
-# <username> with your Github username. Add your fork as a remote.
-cd $GOPATH/src/gopkg.in/throttled/throttled.v2
-git remote add fork git@github.com:<username>/throttled.git
-
-# Create a branch, make your changes, test them and commit.
-git checkout -b my-new-feature
-# <do some work>
-make test 
-git commit -a
-git push -u fork my-new-feature
-```
-
-When your changes are ready, [open a pull request][pr] using "compare
-across forks".
-
 ## Related Projects
 
 See [throttled/gcra][throttled-gcra] for a list of other projects related to
@@ -79,7 +53,7 @@ The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributo
 
 [blog]: http://0value.com/throttled--guardian-of-the-web-server
 [bsd]: https://opensource.org/licenses/BSD-3-Clause
-[doc]: https://godoc.org/gopkg.in/throttled/throttled.v2
+[doc]: https://godoc.org/github.com/throttled/throttled
 [gcra]: https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
 [puerkitobio]: https://github.com/puerkitobio/
 [pr]: https://github.com/throttled/throttled/compare
