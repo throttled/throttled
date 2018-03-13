@@ -23,7 +23,7 @@ func ExampleHTTPRateLimiter() {
 	}
 
 	// Maximum burst of 5 which refills at 20 tokens per minute.
-	quota := throttled.RateQuota{throttled.PerMin(20), 5}
+	quota := throttled.RateQuota{MaxRate: throttled.PerMin(20), MaxBurst: 5}
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {
@@ -48,7 +48,7 @@ func ExampleGCRARateLimiter() {
 	}
 
 	// Maximum burst of 5 which refills at 1 token per hour.
-	quota := throttled.RateQuota{throttled.PerHour(1), 5}
+	quota := throttled.RateQuota{MaxRate: throttled.PerHour(1), MaxBurst: 5}
 
 	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
 	if err != nil {

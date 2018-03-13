@@ -16,11 +16,24 @@ type stubLimiter struct {
 func (sl *stubLimiter) RateLimit(key string, quantity int) (bool, throttled.RateLimitResult, error) {
 	switch key {
 	case "limit":
-		return true, throttled.RateLimitResult{-1, -1, -1, time.Minute}, nil
+		result := throttled.RateLimitResult{
+			Limit:      -1,
+			Remaining:  -1,
+			ResetAfter: -1,
+			RetryAfter: time.Minute,
+		}
+		return true, result, nil
 	case "error":
-		return false, throttled.RateLimitResult{}, errors.New("stubLimiter error")
+		result := throttled.RateLimitResult{}
+		return false, result, errors.New("stubLimiter error")
 	default:
-		return false, throttled.RateLimitResult{1, 2, time.Minute, -1}, nil
+		result := throttled.RateLimitResult{
+			Limit:      1,
+			Remaining:  2,
+			ResetAfter: time.Minute,
+			RetryAfter: -1,
+		}
+		return false, result, nil
 	}
 }
 
