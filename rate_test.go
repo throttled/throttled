@@ -38,7 +38,7 @@ func (ts *testStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.
 
 func TestRateLimit(t *testing.T) {
 	limit := 5
-	rq := throttled.RateQuota{throttled.PerSec(1), limit - 1}
+	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: limit - 1}
 	start := time.Unix(0, 0)
 	cases := []struct {
 		now               time.Time
@@ -111,7 +111,7 @@ func TestRateLimit(t *testing.T) {
 }
 
 func TestRateLimitUpdateFailures(t *testing.T) {
-	rq := throttled.RateQuota{throttled.PerSec(1), 1}
+	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: 1}
 	mst, err := memstore.New(0)
 	if err != nil {
 		t.Fatal(err)
