@@ -20,6 +20,7 @@ get-deps:
 	go get github.com/garyburd/redigo/redis
 	go get github.com/hashicorp/golang-lru
 	go get github.com/golang/lint/golint
+	go get github.com/go-redis/redis
 
 .go-test:
 	go test ./...
