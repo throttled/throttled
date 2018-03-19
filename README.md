@@ -47,6 +47,14 @@ http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
 See [throttled/gcra][throttled-gcra] for a list of other projects related to
 rate limiting and GCRA.
 
+## Release
+
+1. Update `CHANGELOG.md`. Please use semantic versioning and the existing
+   conventions established in the file. Commit the changes with a message like
+   `Bump version to 2.2.0`.
+2. Tag `master` with a new version prefixed with `v`. For example, `v2.2.0`.
+3. `git push origin master --tags`.
+
 ## License
 
 The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributors.
@@ -58,3 +66,7 @@ The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributo
 [puerkitobio]: https://github.com/puerkitobio/
 [pr]: https://github.com/throttled/throttled/compare
 [throttled-gcra]: https://github.com/throttled/gcra
+
+<!--
+# vim: set tw=79:
+-->
