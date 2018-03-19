@@ -54,6 +54,9 @@ rate limiting and GCRA.
    `Bump version to 2.2.0`.
 2. Tag `master` with a new version prefixed with `v`. For example, `v2.2.0`.
 3. `git push origin master --tags`.
+4. Publish a new release on the [releases] page. Copy the body from the
+   contents of `CHANGELOG.md` for the version and follow other conventions from
+   previous releases.
 
 ## License
 
@@ -65,6 +68,7 @@ The [BSD 3-clause license][bsd]. Copyright (c) 2014 Martin Angers and contributo
 [gcra]: https://en.wikipedia.org/wiki/Generic_cell_rate_algorithm
 [puerkitobio]: https://github.com/puerkitobio/
 [pr]: https://github.com/throttled/throttled/compare
+[releases]: https://github.com/throttled/throttled/releases
 [throttled-gcra]: https://github.com/throttled/gcra
 
 <!--
