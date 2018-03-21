@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.2.1 - 2018-03-21
+* [#40](https://github.com/throttled/throttled/pull/40) Replace unmaintained `garyburd/redigo` with `gomodule/redigo`
+
 ## 2.2.0 - 2018-03-19
 * [#37](https://github.com/throttled/throttled/pull/37) Add `go-redis` support
 
