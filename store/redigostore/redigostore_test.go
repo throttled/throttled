@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 
 	"github.com/throttled/throttled/store/redigostore"
 	"github.com/throttled/throttled/store/storetest"
