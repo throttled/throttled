@@ -17,7 +17,7 @@ lint:
 	-golint store # Don't fail on golint warnings themselves
 
 get-deps:
-	go get github.com/garyburd/redigo/redis
+	go get github.com/gomodule/redigo/redis
 	go get github.com/hashicorp/golang-lru
 	go get github.com/golang/lint/golint
 	go get github.com/go-redis/redis

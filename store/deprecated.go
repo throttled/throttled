@@ -2,7 +2,7 @@
 package store // import "github.com/throttled/throttled/store"
 
 import (
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 
 	"github.com/throttled/throttled/store/memstore"
 	"github.com/throttled/throttled/store/redigostore"
