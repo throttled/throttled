@@ -20,7 +20,11 @@ func TestVaryBy(t *testing.T) {
 		k  string
 	}{
 		0: {nil, &http.Request{}, ""},
-		1: {&throttled.VaryBy{RemoteAddr: true}, &http.Request{RemoteAddr: "::"}, "::\n"},
+		1: {
+			&throttled.VaryBy{RemoteAddr: true},
+			&http.Request{RemoteAddr: "1.2.3.4:1234"},
+			"1.2.3.4\n",
+		},
 		2: {
 			&throttled.VaryBy{Method: true, Path: true},
 			&http.Request{Method: "POST", URL: u},
