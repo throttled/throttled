@@ -53,7 +53,7 @@ func (vb *VaryBy) Key(r *http.Request) string {
 		sep = "\n" // Separator defaults to newline
 	}
 	if vb.RemoteAddr {
-		buf.WriteString(strings.ToLower(r.RemoteAddr) + sep)
+		buf.WriteString(strings.ToLower(r.RemoteAddr[:strings.Index(r.RemoteAddr, ":")]) + sep)
 	}
 	if vb.Method {
 		buf.WriteString(strings.ToLower(r.Method) + sep)
