@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.2.3 - 2018-11-13
+* [#49](https://github.com/throttled/throttled/pull/49) Handle the possibility of an empty `RemoteAddr` in `VaryBy`
+
 ## 2.2.2 - 2018-10-18
 * [#47](https://github.com/throttled/throttled/pull/47) Don't include origin port in the identifier when using `throttled.VaryBy{RemoteAddr: true}`
 
