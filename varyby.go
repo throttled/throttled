@@ -52,7 +52,7 @@ func (vb *VaryBy) Key(r *http.Request) string {
 	if sep == "" {
 		sep = "\n" // Separator defaults to newline
 	}
-	if vb.RemoteAddr {
+	if vb.RemoteAddr && len(r.RemoteAddr) > 0 {
 		// RemoteAddr looks something like `IP:port`. Something like
 		// `[::]:1234`.
 		ip := r.RemoteAddr[:strings.LastIndex(r.RemoteAddr, ":")]
