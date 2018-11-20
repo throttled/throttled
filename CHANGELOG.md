@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.2.4 - 2018-11-19
+* [#52](https://github.com/throttled/throttled/pull/52) Handle the possibility of `RemoteAddr` without port in `VaryBy`
+
 ## 2.2.3 - 2018-11-13
 * [#49](https://github.com/throttled/throttled/pull/49) Handle the possibility of an empty `RemoteAddr` in `VaryBy`
 
