@@ -31,26 +31,32 @@ func TestVaryBy(t *testing.T) {
 			"[::]\n",
 		},
 		3: {
+			// Don't panic in case RemoteAddr doesn't contain a port.
+			&throttled.VaryBy{RemoteAddr: true},
+			&http.Request{RemoteAddr: "1.2.3.4"},
+			"1.2.3.4\n",
+		},
+		4: {
 			&throttled.VaryBy{Method: true, Path: true},
 			&http.Request{Method: "POST", URL: u},
 			"post\n/test/path\n",
 		},
-		4: {
+		5: {
 			&throttled.VaryBy{Headers: []string{"Content-length"}},
 			&http.Request{Header: http.Header{"Content-Type": []string{"text/plain"}, "Content-Length": []string{"123"}}},
 			"123\n",
 		},
-		5: {
+		6: {
 			&throttled.VaryBy{Separator: ",", Method: true, Headers: []string{"Content-length"}, Params: []string{"q", "user"}},
 			&http.Request{Method: "GET", Header: http.Header{"Content-Type": []string{"text/plain"}, "Content-Length": []string{"123"}}, Form: url.Values{"q": []string{"s"}, "pwd": []string{"secret"}, "user": []string{"test"}}},
 			"get,123,s,test,",
 		},
-		6: {
+		7: {
 			&throttled.VaryBy{Cookies: []string{"ssn"}},
 			&http.Request{Header: http.Header{"Cookie": []string{ck.String()}}},
 			"test\n",
 		},
-		7: {
+		8: {
 			&throttled.VaryBy{Cookies: []string{"ssn"}, RemoteAddr: true, Custom: func(r *http.Request) string {
 				return "blah"
 			}},
