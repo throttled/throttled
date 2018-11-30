@@ -7,7 +7,7 @@ import (
 
 // DEPRECATED. Quota returns the number of requests allowed and the custom time window.
 func (q Rate) Quota() (int, time.Duration) {
-	return q.count, q.period * time.Duration(q.count)
+	return q.count, q.Period * time.Duration(q.count)
 }
 
 // DEPRECATED. Q represents a custom quota.
@@ -50,7 +50,7 @@ func RateLimit(q Quota, vary *VaryBy, store GCRAStore) *Throttler {
 		period = time.Second
 	}
 
-	rate := Rate{period: period / time.Duration(count)}
+	rate := Rate{Period: period / time.Duration(count)}
 	limiter, err := NewGCRARateLimiter(store, RateQuota{rate, count - 1})
 
 	// This panic in unavoidable because the original interface does

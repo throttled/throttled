@@ -78,8 +78,9 @@ func (r *rateLimitResult) RetryAfter() time.Duration { return r.retryAfter }
 // Rate describes a frequency of an activity such as the number of requests
 // allowed per minute.
 type Rate struct {
-	period time.Duration // Time between equally spaced requests at the rate
-	count  int           // Used internally for deprecated `RateLimit` interface only
+	// Period is the duration between equally spaced requests for this Rate
+	Period time.Duration
+	count  int // Used internally for deprecated `RateLimit` interface only
 }
 
 // RateQuota describes the number of requests allowed per time period.
@@ -143,13 +144,13 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 	if quota.MaxBurst < 0 {
 		return nil, fmt.Errorf("Invalid RateQuota %#v. MaxBurst must be greater than zero.", quota)
 	}
-	if quota.MaxRate.period <= 0 {
+	if quota.MaxRate.Period <= 0 {
 		return nil, fmt.Errorf("Invalid RateQuota %#v. MaxRate must be greater than zero.", quota)
 	}
 
 	return &GCRARateLimiter{
-		delayVariationTolerance: quota.MaxRate.period * (time.Duration(quota.MaxBurst) + 1),
-		emissionInterval:        quota.MaxRate.period,
+		delayVariationTolerance: quota.MaxRate.Period * (time.Duration(quota.MaxBurst) + 1),
+		emissionInterval:        quota.MaxRate.Period,
 		limit:                   quota.MaxBurst + 1,
 		store:                   st,
 	}, nil
