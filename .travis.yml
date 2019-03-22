@@ -3,13 +3,16 @@ sudo: false
 language: go
 
 go:
-    - "1.9"
-    - "1.10"
-    - "1.11"
-    # 1.x builds the latest in that series. Also try to add other versions here
-    # as they come up so that we're pretty sure that we're maintaining
-    # backwards compatibility.
-    - 1.x
+  - "1.9.7"
+  - "1.10.3"
+  - "1.11"
+   # 1.x builds the latest in that series. Also try to add other versions here
+  # as they come up so that we're pretty sure that we're maintaining
+  # backwards compatibility.
+  - 1.x
+
+env:
+  - GO111MODULE=on
 
 notifications:
   email: false

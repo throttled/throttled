@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mediocregopher/radix"
+	"github.com/mediocregopher/radix/v3"
 	"github.com/throttled/throttled/store/radixstore"
 	"github.com/throttled/throttled/store/storetest"
 )

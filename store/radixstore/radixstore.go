@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mediocregopher/radix"
+	"github.com/mediocregopher/radix/v3"
 )
 
 const (
