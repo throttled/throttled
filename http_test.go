@@ -110,3 +110,21 @@ func runHTTPTestCases(t *testing.T, h http.Handler, cs []httpTestCase) {
 		}
 	}
 }
+
+func BenchmarkHTTPRateLimiter(b *testing.B) {
+	limiter := throttled.HTTPRateLimiter{
+		RateLimiter: &stubLimiter{},
+		VaryBy:      &pathGetter{},
+	}
+	h := limiter.RateLimit(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	r, err := http.NewRequest("GET", "/", nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		h.ServeHTTP(w, r)
+	}
+	_ = w.Body
+}
