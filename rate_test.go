@@ -126,3 +126,23 @@ func TestRateLimitUpdateFailures(t *testing.T) {
 		t.Error("Expected limiting to fail when store updates fail")
 	}
 }
+
+func BenchmarkRateLimit(b *testing.B) {
+	limit := 5
+	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1000), MaxBurst: limit - 1}
+	mst, err := memstore.New(0)
+	if err != nil {
+		b.Fatal(err)
+	}
+	st := testStore{store: mst}
+
+	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	if err != nil {
+		b.Fatal(err)
+	}
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _, err = rl.RateLimit("foo", 1)
+	}
+	_ = err
+}
