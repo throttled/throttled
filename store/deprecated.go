@@ -8,7 +8,9 @@ import (
 	"github.com/throttled/throttled/store/redigostore"
 )
 
-// DEPRECATED. NewMemStore is a compatible alias for mem.New
+// NewMemStore initializes a new memory-based store.
+//
+// Deprecated: Use github.com/throttled/throttled/store/memstore instead.
 func NewMemStore(maxKeys int) *memstore.MemStore {
 	st, err := memstore.New(maxKeys)
 	if err != nil {
@@ -19,7 +21,9 @@ func NewMemStore(maxKeys int) *memstore.MemStore {
 	return st
 }
 
-// DEPRECATED. NewMemStore is a compatible alias for redis.New
+// NewRedisStore initializes a new Redigo-based store.
+//
+// Deprecated: Use github.com/throttled/throttled/store/redigostore instead.
 func NewRedisStore(pool *redis.Pool, keyPrefix string, db int) *redigostore.RedigoStore {
 	st, err := redigostore.New(pool, keyPrefix, db)
 	if err != nil {

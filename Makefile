@@ -12,9 +12,8 @@ bench:
 lint:
 	gofmt -l .
 	go vet ./...
-	which golint # Fail if golint doesn't exist
-	-golint . # Don't fail on golint warnings themselves
-	-golint store # Don't fail on golint warnings themselves
+	which golint
+	golint -set_exit_status ./...
 
 get-deps:
 	go get github.com/gomodule/redigo/redis
