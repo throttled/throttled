@@ -65,7 +65,7 @@ func BenchmarkRedisStore(b *testing.B) {
 func clearRedis(c *redis.Client) error {
 	context := context.Background()
 
-	keys, err := c.Keys(context, redisTestPrefix + "*").Result()
+	keys, err := c.Keys(context, redisTestPrefix+"*").Result()
 	if err != nil {
 		return err
 	}
