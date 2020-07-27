@@ -1,6 +1,7 @@
 package goredisstore_test
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
@@ -62,12 +63,14 @@ func BenchmarkRedisStore(b *testing.B) {
 }
 
 func clearRedis(c *redis.Client) error {
-	keys, err := c.Keys(redisTestPrefix + "*").Result()
+	context := context.Background()
+
+	keys, err := c.Keys(context, redisTestPrefix+"*").Result()
 	if err != nil {
 		return err
 	}
 
-	return c.Del(keys...).Err()
+	return c.Del(context, keys...).Err()
 }
 
 func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, *goredisstore.GoRedisStore) {
@@ -79,7 +82,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, *goredisstore.
 		DB:          redisTestDB, // use default DB
 	})
 
-	if err := client.Ping().Err(); err != nil {
+	if err := client.Ping(context.Background()).Err(); err != nil {
 		client.Close()
 		tb.Skip("redis server not available on localhost port 6379")
 	}

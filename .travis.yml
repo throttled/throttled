@@ -3,7 +3,6 @@ sudo: false
 language: go
 
 go:
-    - "1.11"
     - "1.12"
     - "1.13"
     # 1.x builds the latest in that series. Also try to add other versions here
