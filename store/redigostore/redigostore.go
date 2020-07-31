@@ -157,11 +157,9 @@ func (r *RedigoStore) getConn() (redis.Conn, error) {
 	conn := r.pool.Get()
 
 	// Select the specified database
-	if r.db > 0 {
-		if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
-			conn.Close()
-			return nil, err
-		}
+	if _, err := redis.String(conn.Do("SELECT", r.db)); err != nil {
+		conn.Close()
+		return nil, err
 	}
 
 	return conn, nil
