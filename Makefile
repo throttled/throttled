@@ -11,10 +11,10 @@ fmt:
 
 .PHONY: get-deps
 get-deps:
+	go get github.com/go-redis/redis
 	go get github.com/gomodule/redigo/redis
 	go get github.com/hashicorp/golang-lru
 	go get golang.org/x/lint/golint
-	go get github.com/go-redis/redis
 
 .PHONY: lint
 lint:
