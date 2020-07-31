@@ -55,29 +55,6 @@ jobs:
           echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
           echo "WORKING_DIRECTORY=${WORKING_DIRECTORY}"
 
-      # Used to force dependencies to re-cache once a day so that we don't run
-      # into any weird cache invalidation problems, so to make sure that
-      # dependency fetches keep working.
-      - name: Get date
-        id: get-date
-        run: |
-          echo "::set-output name=date::$(/bin/date -u "+%Y-%m-%d")"
-        shell: bash
-
-      - name: Cache dependencies
-        id: cache-dependencies
-        uses: actions/cache@v2
-        with:
-          # These correspond to what's in `make get-deps`.
-          #
-          # Don't try to use variables in these paths.
-          path: |
-            /home/runner/work/throttled/throttled/go/src/github.com/go-redis/
-            /home/runner/work/throttled/throttled/go/src/github.com/gomodule/
-            /home/runner/work/throttled/throttled/go/src/github.com/hashicorp/
-            /home/runner/work/throttled/throttled/go/src/github.com/x/
-          key: ${{ runner.os }}-${{ steps.get-date.outputs.date }}-cache-dependencies
-
       - name: Install dependencies
         run: make get-deps
         working-directory: ${{ env.WORKING_DIRECTORY }}
