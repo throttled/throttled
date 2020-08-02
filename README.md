@@ -23,23 +23,44 @@ to an http.Handler to 20 requests per path per minute with bursts of
 up to 5 additional requests:
 
 ```go
-store, err := memstore.New(65536)
-if err != nil {
-	log.Fatal(err)
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/throttled/throttled"
+	"github.com/throttled/throttled/store/memstore"
+)
+
+func myHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, world")
 }
 
-quota := throttled.RateQuota{throttled.PerMin(20), 5}
-rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
-if err != nil {
-	log.Fatal(err)
-}
+func main() {
+	store, err := memstore.New(65536)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-httpRateLimiter := throttled.HTTPRateLimiter{
-	RateLimiter: rateLimiter,
-	VaryBy:      &throttled.VaryBy{Path: true},
-}
+	quota := throttled.RateQuota{
+		MaxRate:  throttled.PerMin(20),
+		MaxBurst: 5,
+	}
+	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
+	httpRateLimiter := throttled.HTTPRateLimiter{
+		RateLimiter: rateLimiter,
+		VaryBy:      &throttled.VaryBy{Path: true},
+	}
+
+	handler := http.HandlerFunc(myHandlerFunc)
+	http.ListenAndServe(":8080", httpRateLimiter.RateLimit(handler))
+}
 ```
 
 ## Related Projects
