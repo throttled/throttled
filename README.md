@@ -11,16 +11,42 @@ what our users need. Thanks!
 
 ## Installation
 
-```sh
-go get -u github.com/throttled/throttled
+Go Modules are required to use Throttled (check that there's a `go.mod` in your
+package's root). Import Throttled:
+
+``` go
+import (
+	"github.com/throttled/throttled/v2"
+)
 ```
+
+Then any of the standard Go tooling like `go build`, `go test`, will find the
+package automatically.
+
+You can also pull it into your project using `go get`:
+
+```sh
+go get -u github.com/throttled/throttled/v2
+```
+
+### Upgrading from the pre-Modules version
+
+The current `/v2` of Throttled is perfectly compatible with the pre-Modules
+version of Throttled, but when upgrading, you'll have to add `/v2` to your
+imports. Sorry about the churn, but because Throttled was already on its
+semantic version 2 by the time Go Modules came around, its tooling didn't play
+nice because it expects the major version in the path to match the major in
+its tags.
 
 ## Documentation
 
-API documentation is available on [godoc.org][doc]. The following
-example demonstrates the usage of HTTPLimiter for rate-limiting access
-to an http.Handler to 20 requests per path per minute with bursts of
-up to 5 additional requests:
+API documentation is available on [godoc.org][doc].
+
+## Usage
+
+This example demonstrates the usage of `HTTPLimiter` for rate-limiting access to
+an `http.Handler` to 20 requests per path per minute with bursts of up to 5
+additional requests:
 
 ```go
 package main
@@ -30,8 +56,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/throttled/throttled"
-	"github.com/throttled/throttled/store/memstore"
+	"github.com/throttled/throttled/v2"
+	"github.com/throttled/throttled/v2/store/memstore"
 )
 
 func myHandlerFunc(w http.ResponseWriter, r *http.Request) {

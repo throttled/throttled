@@ -1,5 +1,5 @@
 // Package redigostore offers Redis-based store implementation for throttled using redigo.
-package redigostore // import "github.com/throttled/throttled/store/redigostore"
+package redigostore // import "github.com/throttled/throttled/v2/store/redigostore"
 
 import (
 	"strings"

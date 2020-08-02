@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/throttled/throttled"
-	"github.com/throttled/throttled/store/goredisstore"
-	"github.com/throttled/throttled/store/storetest"
+	"github.com/throttled/throttled/v2"
+	"github.com/throttled/throttled/v2/store/goredisstore"
+	"github.com/throttled/throttled/v2/store/storetest"
 )
 
 const (

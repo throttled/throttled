@@ -1,5 +1,5 @@
 // Package goredisstore offers Redis-based store implementation for throttled using go-redis.
-package goredisstore // import "github.com/throttled/throttled/store/goredisstore"
+package goredisstore // import "github.com/throttled/throttled/v2/store/goredisstore"
 
 import (
 	"strings"
