@@ -2,11 +2,10 @@
 package goredisstore // import "github.com/throttled/throttled/store/goredisstore"
 
 import (
-	"context"
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/go-redis/redis"
 )
 
 const (
@@ -47,16 +46,12 @@ func New(client *redis.Client, keyPrefix string) (*GoRedisStore, error) {
 // or -1 if it does not exist. It also returns the current time at
 // the redis server to microsecond precision.
 func (r *GoRedisStore) GetWithTime(key string) (int64, time.Time, error) {
-	// TODO: Throttled should probably provide a Context-based version of its
-	// API.
-	context := context.Background()
-
 	key = r.prefix + key
 
 	pipe := r.client.Pipeline()
-	timeCmd := pipe.Time(context)
-	getKeyCmd := pipe.Get(context, key)
-	_, err := pipe.Exec(context)
+	timeCmd := pipe.Time()
+	getKeyCmd := pipe.Get(key)
+	_, err := pipe.Exec()
 
 	now, err := timeCmd.Result()
 	if err != nil {
@@ -78,13 +73,9 @@ func (r *GoRedisStore) GetWithTime(key string) (int64, time.Time, error) {
 // If a new value was set, the ttl in the key is also set, though this
 // operation is not performed atomically.
 func (r *GoRedisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
-	// TODO: Throttled should probably provide a Context-based version of its
-	// API.
-	context := context.Background()
-
 	key = r.prefix + key
 
-	updated, err := r.client.SetNX(context, key, value, 0).Result()
+	updated, err := r.client.SetNX(key, value, 0).Result()
 	if err != nil {
 		return false, err
 	}
@@ -96,7 +87,7 @@ func (r *GoRedisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.D
 		ttl = 1 * time.Second
 	}
 
-	err = r.client.Expire(context, key, ttl).Err()
+	err = r.client.Expire(key, ttl).Err()
 	return updated, err
 }
 
@@ -106,10 +97,6 @@ func (r *GoRedisStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.D
 // store, it returns false with no error. If the swap succeeds, the
 // ttl for the key is updated atomically.
 func (r *GoRedisStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
-	// TODO: Throttled should probably provide a Context-based version of its
-	// API.
-	context := context.Background()
-
 	key = r.prefix + key
 
 	ttlSeconds := int(ttl.Seconds())
@@ -122,7 +109,7 @@ func (r *GoRedisStore) CompareAndSwapWithTTL(key string, old, new int64, ttl tim
 	}
 
 	// result will be 0 or 1
-	result, err := r.client.Eval(context, redisCASScript, []string{key}, old, new, ttlSeconds).Result()
+	result, err := r.client.Eval(redisCASScript, []string{key}, old, new, ttlSeconds).Result()
 
 	var swapped bool
 	if s, ok := result.(int64); ok {
