@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.5.0 - 2020-08-02
+* [#79](https://github.com/throttled/throttled/pull/79) Import Throttle with `/v2` suffix in the package path
+
 ## 2.4.0 - 2020-08-01
 * [#78](https://github.com/throttled/throttled/pull/78) Revert upgrade to go-redis V8 (now back on V6)
 
