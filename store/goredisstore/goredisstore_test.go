@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/throttled/throttled"
 	"github.com/throttled/throttled/store/goredisstore"
 	"github.com/throttled/throttled/store/storetest"
