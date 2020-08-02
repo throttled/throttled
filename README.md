@@ -1,4 +1,4 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.svg)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.svg)](https://godoc.org/github.com/throttled/throttled)
+# Throttled [![Build Status](https://github.com/throttled/throttled/workflows/throttled%20CI/badge.svg)](https://github.com/throttled/throttled/actions) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.svg)](https://godoc.org/github.com/throttled/throttled)
 
 Package throttled implements rate limiting using the [generic cell rate
 algorithm][gcra] to limit access to resources such as HTTP endpoints.
