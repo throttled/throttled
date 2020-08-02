@@ -12,22 +12,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
-    env:
-      GOPATH: "/home/runner/work/throttled/throttled/go"
-
-      # This isn't great, but the interplay between GitHub Actions' Go action
-      # and pre-Go Modules projects is *very* bad and doesn't work out of the
-      # box. I've hacked my way around it here by specifying a GOPATH inside of
-      # GITHUB_WORKSPACE, checking out to an appropriate place in it, then
-      # explicitly specifying a working directory for every single Go-related
-      # step.
-      #
-      # The reason it's nested so deeply is that actions/checkout@v2 will only
-      # allow a path relative to `/home/runner/work/throttled/throttled/`.
-      #
-      # All of this can be ripped out once the project is on Go Modules.
-      WORKING_DIRECTORY: "/home/runner/work/throttled/throttled/go/src/github.com/throttled/throttled"
-
     strategy:
       matrix:
         go:
@@ -43,8 +27,6 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          path: ${{ env.WORKING_DIRECTORY }}
 
       - name: Debug
         run: |
@@ -53,38 +35,29 @@ jobs:
           echo "pwd=$(pwd)"
           echo "HOME=${HOME}"
           echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
-          echo "WORKING_DIRECTORY=${WORKING_DIRECTORY}"
 
-      - name: Install dependencies
-        run: make get-deps
-        working-directory: ${{ env.WORKING_DIRECTORY }}
+      - name: Install Golint
+        run: go get -u golang.org/x/lint/golint
 
       - name: "Go: Build"
         run: go build ./...
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: "Go: Test"
         run: go test -v ./...
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: "Go: Test (with `-race` and `-bench`)"
         run: go test -race -bench=. -cpu=1,2,4
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: "Go: Test (with coverage)"
         run: |
           go test -coverprofile=throttled.coverage.out .
           go test -coverprofile=store.coverage.out ./store
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: "Go: Vet"
         run: go vet ./...
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: "Check: Gofmt"
         run: scripts/check_gofmt.sh
-        working-directory: ${{ env.WORKING_DIRECTORY }}
 
       - name: "Check: Lint"
         run: "$(go env GOPATH)/bin/golint -set_exit_status ./..."
-        working-directory: ${{ env.WORKING_DIRECTORY }}
