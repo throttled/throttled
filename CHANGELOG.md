@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.4.0 - 2020-08-01
+* [#78](https://github.com/throttled/throttled/pull/78) Revert upgrade to go-redis V8 (now back on V6)
+
 ## 2.3.0 - 2020-08-01
 * [#76](https://github.com/throttled/throttled/pull/76) Add basic support for Go Modules
 
