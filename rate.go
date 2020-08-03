@@ -113,7 +113,7 @@ func PerHour(n int) Rate { return Rate{time.Hour / time.Duration(n), n} }
 // PerDay represents a number of requests per day.
 func PerDay(n int) Rate { return Rate{24 * time.Hour / time.Duration(n), n} }
 
-// PerPeriod represents a number of requests per provided period.
+// PerDuration represents a number of requests per provided duration.
 func PerDuration(n int, d time.Duration) Rate { return Rate{d / time.Duration(n), n} }
 
 // GCRARateLimiter is a RateLimiter that users the generic cell-rate
