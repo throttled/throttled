@@ -1,5 +1,5 @@
 // Package memstore offers an in-memory store implementation for throttled.
-package memstore // import "github.com/throttled/throttled/store/memstore"
+package memstore // import "github.com/throttled/throttled/v2/store/memstore"
 
 import (
 	"sync"

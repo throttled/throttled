@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 2.5.0 - 2020-08-02
+* [#79](https://github.com/throttled/throttled/pull/79) Import Throttle with `/v2` suffix in the package path
+
+## 2.4.0 - 2020-08-01
+* [#78](https://github.com/throttled/throttled/pull/78) Revert upgrade to go-redis V8 (now back on V6)
+
+## 2.3.0 - 2020-08-01
+* [#76](https://github.com/throttled/throttled/pull/76) Add basic support for Go Modules
+
+## 2.2.5 - 2020-08-01
+* [#67](https://github.com/throttled/throttled/pull/67) Bug fix: Fix TTL in `SetIfNotExistsWithTTL`
+* [#74](https://github.com/throttled/throttled/pull/74) Bug fix: Always select DB for Redigo store, even when DB is configured to 0
+
 ## 2.2.4 - 2018-11-19
 * [#52](https://github.com/throttled/throttled/pull/52) Handle the possibility of `RemoteAddr` without port in `VaryBy`
 

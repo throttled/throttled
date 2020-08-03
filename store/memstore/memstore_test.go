@@ -3,8 +3,8 @@ package memstore_test
 import (
 	"testing"
 
-	"github.com/throttled/throttled/store/memstore"
-	"github.com/throttled/throttled/store/storetest"
+	"github.com/throttled/throttled/v2/store/memstore"
+	"github.com/throttled/throttled/v2/store/storetest"
 )
 
 func TestMemStoreLRU(t *testing.T) {

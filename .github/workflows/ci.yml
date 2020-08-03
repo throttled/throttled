@@ -1,0 +1,63 @@
+name: throttled CI
+
+on:
+  pull_request:
+  push:
+  schedule:
+    # once a day at 08:00
+    - cron: "0 8 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    strategy:
+      matrix:
+        go:
+          - 1.12.x
+          - 1.13.x
+          - 1.14.x
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Debug
+        run: |
+          echo "github.ref=${{ github.ref }}"
+          echo "go env GOPATH=$(go env GOPATH)"
+          echo "pwd=$(pwd)"
+          echo "HOME=${HOME}"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+
+      - name: Install Golint
+        run: go get -u golang.org/x/lint/golint
+
+      - name: "Go: Build"
+        run: go build ./...
+
+      - name: "Go: Test"
+        run: go test -v ./...
+
+      - name: "Go: Test (with `-race` and `-bench`)"
+        run: go test -race -bench=. -cpu=1,2,4
+
+      - name: "Go: Test (with coverage)"
+        run: |
+          go test -coverprofile=throttled.coverage.out .
+          go test -coverprofile=store.coverage.out ./store
+
+      - name: "Go: Vet"
+        run: go vet ./...
+
+      - name: "Check: Gofmt"
+        run: scripts/check_gofmt.sh
+
+      - name: "Check: Lint"
+        run: "$(go env GOPATH)/bin/golint -set_exit_status ./..."

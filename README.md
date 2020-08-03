@@ -1,4 +1,4 @@
-# Throttled [![build status](https://secure.travis-ci.org/throttled/throttled.svg)](https://travis-ci.org/throttled/throttled) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.svg)](https://godoc.org/github.com/throttled/throttled)
+# Throttled [![Build Status](https://github.com/throttled/throttled/workflows/throttled%20CI/badge.svg)](https://github.com/throttled/throttled/actions) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.svg)](https://godoc.org/github.com/throttled/throttled)
 
 Package throttled implements rate limiting using the [generic cell rate
 algorithm][gcra] to limit access to resources such as HTTP endpoints.
@@ -11,35 +11,82 @@ what our users need. Thanks!
 
 ## Installation
 
-```sh
-go get -u github.com/throttled/throttled
+Go Modules are required to use Throttled (check that there's a `go.mod` in your
+package's root). Import Throttled:
+
+``` go
+import (
+	"github.com/throttled/throttled/v2"
+)
 ```
+
+Then any of the standard Go tooling like `go build`, `go test`, will find the
+package automatically.
+
+You can also pull it into your project using `go get`:
+
+```sh
+go get -u github.com/throttled/throttled/v2
+```
+
+### Upgrading from the pre-Modules version
+
+The current `/v2` of Throttled is perfectly compatible with the pre-Modules
+version of Throttled, but when upgrading, you'll have to add `/v2` to your
+imports. Sorry about the churn, but because Throttled was already on its
+semantic version 2 by the time Go Modules came around, its tooling didn't play
+nice because it expects the major version in the path to match the major in
+its tags.
 
 ## Documentation
 
-API documentation is available on [godoc.org][doc]. The following
-example demonstrates the usage of HTTPLimiter for rate-limiting access
-to an http.Handler to 20 requests per path per minute with bursts of
-up to 5 additional requests:
+API documentation is available on [godoc.org][doc].
+
+## Usage
+
+This example demonstrates the usage of `HTTPLimiter` for rate-limiting access to
+an `http.Handler` to 20 requests per path per minute with bursts of up to 5
+additional requests:
 
 ```go
-store, err := memstore.New(65536)
-if err != nil {
-	log.Fatal(err)
+package main
+
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/throttled/throttled/v2"
+	"github.com/throttled/throttled/v2/store/memstore"
+)
+
+func myHandlerFunc(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, world")
 }
 
-quota := throttled.RateQuota{throttled.PerMin(20), 5}
-rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
-if err != nil {
-	log.Fatal(err)
-}
+func main() {
+	store, err := memstore.New(65536)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-httpRateLimiter := throttled.HTTPRateLimiter{
-	RateLimiter: rateLimiter,
-	VaryBy:      &throttled.VaryBy{Path: true},
-}
+	quota := throttled.RateQuota{
+		MaxRate:  throttled.PerMin(20),
+		MaxBurst: 5,
+	}
+	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
+	httpRateLimiter := throttled.HTTPRateLimiter{
+		RateLimiter: rateLimiter,
+		VaryBy:      &throttled.VaryBy{Path: true},
+	}
+
+	handler := http.HandlerFunc(myHandlerFunc)
+	http.ListenAndServe(":8080", httpRateLimiter.RateLimit(handler))
+}
 ```
 
 ## Related Projects

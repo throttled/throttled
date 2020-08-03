@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/throttled/throttled"
-	"github.com/throttled/throttled/store/memstore"
+	"github.com/throttled/throttled/v2"
+	"github.com/throttled/throttled/v2/store/memstore"
 )
 
 const deniedStatus = 429
@@ -112,7 +112,7 @@ func TestRateLimit(t *testing.T) {
 
 func TestRateLimitCustomPeriod(t *testing.T) {
 	period := 10 * time.Millisecond
-	rq := throttled.RateQuota{throttled.PerPeriod(3, period), 0}
+	rq := throttled.RateQuota{throttled.PerDuration(3, period), 0}
 	mst, err := memstore.New(27)
 	if err != nil {
 		t.Fatal(err)
