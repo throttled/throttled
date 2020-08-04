@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.6.0 - 2020-08-04
+* [#64](https://github.com/throttled/throttled/pull/64) Add `SetTimeNow` to override getting current time to memstore driver
+* [#66](https://github.com/throttled/throttled/pull/66) Add `PerDuration` function for getting a perfectly customized `Rate`
+
 ## 2.5.0 - 2020-08-02
 * [#79](https://github.com/throttled/throttled/pull/79) Import Throttle with `/v2` suffix in the package path
 
