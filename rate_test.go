@@ -110,6 +110,36 @@ func TestRateLimit(t *testing.T) {
 	}
 }
 
+func TestRateLimitCustomPeriod(t *testing.T) {
+	period := 10 * time.Millisecond
+	rq := throttled.RateQuota{throttled.PerDuration(3, period), 0}
+	mst, err := memstore.New(27)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	st := testStore{store: mst}
+	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < 27; i++ {
+		limited, _, err := rl.RateLimit("bar", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if i != 0 && i%3 == 0 && !limited {
+			t.Errorf("%d is expected to be limited", i)
+		}
+
+		if limited {
+			time.Sleep(period)
+		}
+	}
+}
+
 func TestRateLimitUpdateFailures(t *testing.T) {
 	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: 1}
 	mst, err := memstore.New(0)
