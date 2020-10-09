@@ -25,7 +25,7 @@ return 1
 
 // GoRedisStore implements a Redis-based store using go-redis.
 type GoRedisStore struct {
-	client *redis.Client
+	client redis.UniversalClient
 	prefix string
 }
 
@@ -35,7 +35,7 @@ type GoRedisStore struct {
 // be selected to store the keys. Any updating operations will reset
 // the key TTL to the provided value rounded down to the nearest
 // second. Depends on Redis 2.6+ for EVAL support.
-func New(client *redis.Client, keyPrefix string) (*GoRedisStore, error) {
+func New(client redis.UniversalClient, keyPrefix string) (*GoRedisStore, error) {
 	return &GoRedisStore{
 		client: client,
 		prefix: keyPrefix,
