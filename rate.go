@@ -205,8 +205,8 @@ func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitRe
 		if diff := now.Sub(allowAt); diff < 0 {
 			if increment <= g.delayVariationTolerance {
 				rlc.RetryAfter = -diff
+				ttl = tat.Sub(now)
 			}
-			ttl = tat.Sub(now)
 			limited = true
 			break
 		}

@@ -66,6 +66,8 @@ func TestRateLimit(t *testing.T) {
 		13: {start.Add(9500 * time.Millisecond), 2, 2, 3 * time.Second, -1, false},
 		// Large requests cannot exceed limits
 		14: {start.Add(9500 * time.Millisecond), 5, 2, 3 * time.Second, 3 * time.Second, true},
+		// Requesting value larger than the maxmum after some values have been added to store and state was reset by timeout
+		15: {start.Add(15000 * time.Millisecond), 6, 5, 0, -1, true},
 	}
 
 	mst, err := memstore.New(0)
