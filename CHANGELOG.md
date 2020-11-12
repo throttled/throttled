@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.7.1 - 2020-11-12
+* [#81](https://github.com/throttled/throttled/pull/81) Fix statistics calculation when quantity exceeds max burst
+
 ## 2.7.0 - 2020-10-09
 * [#80](https://github.com/throttled/throttled/pull/80) In `goredisstore`, use `UniversalClient` interface instead of `*Client` implementation (this is backwards compatible)
 
