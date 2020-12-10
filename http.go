@@ -23,7 +23,7 @@ var (
 )
 
 // HTTPRateLimiter faciliates using a Limiter to limit HTTP requests.
-type HTTPRateLimiter struct {
+type HTTPRateLimiterCtx struct {
 	// DeniedHandler is called if the request is disallowed. If it is
 	// nil, the DefaultDeniedHandler variable is used.
 	DeniedHandler http.Handler
@@ -34,7 +34,7 @@ type HTTPRateLimiter struct {
 
 	// Limiter is call for each request to determine whether the
 	// request is permitted and update internal state. It must be set.
-	RateLimiter RateLimiter
+	RateLimiter RateLimiterCtx
 
 	// VaryBy is called for each request to generate a key for the
 	// limiter. If it is nil, all requests use an empty string key.
@@ -49,7 +49,7 @@ type HTTPRateLimiter struct {
 // X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset and
 // Retry-After headers will be written to the response based on the
 // values in the RateLimitResult.
-func (t *HTTPRateLimiter) RateLimit(h http.Handler) http.Handler {
+func (t *HTTPRateLimiterCtx) RateLimit(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if t.RateLimiter == nil {
 			t.error(w, r, errors.New("You must set a RateLimiter on HTTPRateLimiter"))
@@ -60,7 +60,7 @@ func (t *HTTPRateLimiter) RateLimit(h http.Handler) http.Handler {
 			k = t.VaryBy.Key(r)
 		}
 
-		limited, context, err := t.RateLimiter.RateLimit(k, 1)
+		limited, context, err := t.RateLimiter.RateLimitCtx(r.Context(), k, 1)
 
 		if err != nil {
 			t.error(w, r, err)
@@ -81,7 +81,7 @@ func (t *HTTPRateLimiter) RateLimit(h http.Handler) http.Handler {
 	})
 }
 
-func (t *HTTPRateLimiter) error(w http.ResponseWriter, r *http.Request, err error) {
+func (t *HTTPRateLimiterCtx) error(w http.ResponseWriter, r *http.Request, err error) {
 	e := t.Error
 	if e == nil {
 		e = DefaultError

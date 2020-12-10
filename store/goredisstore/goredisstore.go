@@ -2,6 +2,7 @@
 package goredisstore // import "github.com/throttled/throttled/v2/store/goredisstore"
 
 import (
+	"github.com/throttled/throttled/v2"
 	"strings"
 	"time"
 
@@ -40,6 +41,12 @@ func New(client redis.UniversalClient, keyPrefix string) (*GoRedisStore, error) 
 		client: client,
 		prefix: keyPrefix,
 	}, nil
+}
+
+// NewCtx is the version of New that can be used with a context-aware ratelimiter.
+func NewCtx(client redis.UniversalClient, keyPrefix string) (throttled.GCRAStoreCtx, error) {
+	st, err := New(client, keyPrefix)
+	return throttled.WrapStoreWithContext(st), err
 }
 
 // GetWithTime returns the value of the key if it is in the store
