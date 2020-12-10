@@ -22,7 +22,7 @@ var (
 	}
 )
 
-// HTTPRateLimiter faciliates using a Limiter to limit HTTP requests.
+// HTTPRateLimiterCtx facilitates using a Limiter to limit HTTP requests.
 type HTTPRateLimiterCtx struct {
 	// DeniedHandler is called if the request is disallowed. If it is
 	// nil, the DefaultDeniedHandler variable is used.

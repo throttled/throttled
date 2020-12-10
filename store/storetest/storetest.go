@@ -12,7 +12,7 @@ import (
 	"github.com/throttled/throttled/v2"
 )
 
-// TestGCRAStore tests the behavior of a GCRAStore implementation for
+// TestGCRAStoreCtx tests the behavior of a GCRAStore implementation for
 // compliance with the throttled API. It does not require support
 // for TTLs.
 func TestGCRAStoreCtx(t *testing.T, st throttled.GCRAStoreCtx) {
@@ -108,7 +108,7 @@ func TestGCRAStoreCtx(t *testing.T, st throttled.GCRAStoreCtx) {
 	}
 }
 
-// TestGCRAStoreTTL tests the behavior of TTLs in a GCRAStore implementation.
+// TestGCRAStoreTTLCtx tests the behavior of TTLs in a GCRAStore implementation.
 func TestGCRAStoreTTLCtx(t *testing.T, st throttled.GCRAStoreCtx) {
 	ttl := time.Second
 	want := int64(1)
@@ -135,7 +135,7 @@ func TestGCRAStoreTTLCtx(t *testing.T, st throttled.GCRAStoreCtx) {
 	}
 }
 
-// BenchmarkGCRAStore runs parallel benchmarks against a GCRAStore implementation.
+// BenchmarkGCRAStoreCtx runs parallel benchmarks against a GCRAStore implementation.
 // Aside from being useful for performance testing, this is useful for finding
 // race conditions with the Go race detector.
 func BenchmarkGCRAStoreCtx(b *testing.B, st throttled.GCRAStoreCtx) {
