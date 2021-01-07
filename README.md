@@ -1,4 +1,4 @@
-# Throttled [![Build Status](https://github.com/throttled/throttled/workflows/throttled%20CI/badge.svg)](https://github.com/throttled/throttled/actions) [![GoDoc](https://godoc.org/github.com/throttled/throttled?status.svg)](https://godoc.org/github.com/throttled/throttled)
+# Throttled [![Build Status](https://github.com/throttled/throttled/workflows/throttled%20CI/badge.svg)](https://github.com/throttled/throttled/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/throttled/throttled/v2.svg)](https://pkg.go.dev/github.com/throttled/throttled/v2)
 
 Package throttled implements rate limiting using the [generic cell rate
 algorithm][gcra] to limit access to resources such as HTTP endpoints.
