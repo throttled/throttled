@@ -2,6 +2,7 @@
 package redigostore // import "github.com/throttled/throttled/v2/store/redigostore"
 
 import (
+	"github.com/throttled/throttled/v2"
 	"strings"
 	"time"
 
@@ -42,6 +43,12 @@ func New(pool *redis.Pool, keyPrefix string, db int) (*RedigoStore, error) {
 		prefix: keyPrefix,
 		db:     db,
 	}, nil
+}
+
+// NewCtx is the version of New that can be used with a context-aware ratelimiter.
+func NewCtx(pool *redis.Pool, keyPrefix string, db int) (throttled.GCRAStoreCtx, error) {
+	st, err := New(pool, keyPrefix, db)
+	return throttled.WrapStoreWithContext(st), err
 }
 
 // GetWithTime returns the value of the key if it is in the store

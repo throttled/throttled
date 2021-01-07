@@ -2,6 +2,7 @@
 package memstore // import "github.com/throttled/throttled/v2/store/memstore"
 
 import (
+	"github.com/throttled/throttled/v2"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,6 +46,12 @@ func New(maxKeys int) (*MemStore, error) {
 		}
 	}
 	return m, nil
+}
+
+// NewCtx is the version of New that can be used with a context-aware ratelimiter.
+func NewCtx(maxKeys int) (throttled.GCRAStoreCtx, error) {
+	st, err := New(maxKeys)
+	return throttled.WrapStoreWithContext(st), err
 }
 
 // SetTimeNow makes this store use the given function instead of time.Now().

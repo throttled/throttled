@@ -1,13 +1,14 @@
 package goredisstore_test
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v8"
 	"github.com/throttled/throttled/v2"
-	"github.com/throttled/throttled/v2/store/goredisstore"
+	"github.com/throttled/throttled/v2/store/goredisstore.v8"
 	"github.com/throttled/throttled/v2/store/storetest"
 )
 
@@ -62,15 +63,15 @@ func BenchmarkRedisStore(b *testing.B) {
 }
 
 func clearRedis(c *redis.Client) error {
-	keys, err := c.Keys(redisTestPrefix + "*").Result()
+	keys, err := c.Keys(context.Background(), redisTestPrefix+"*").Result()
 	if err != nil {
 		return err
 	}
 
-	return c.Del(keys...).Err()
+	return c.Del(context.Background(), keys...).Err()
 }
 
-func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, throttled.GCRAStoreCtx) {
+func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, *goredisstore.GoRedisStore) {
 	client := redis.NewClient(&redis.Options{
 		PoolSize:    10, // default
 		IdleTimeout: 30 * time.Second,
@@ -79,7 +80,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, throttled.GCRA
 		DB:          redisTestDB, // use default DB
 	})
 
-	if err := client.Ping().Err(); err != nil {
+	if err := client.Ping(context.Background()).Err(); err != nil {
 		client.Close()
 		tb.Skip("redis server not available on localhost port 6379")
 	}

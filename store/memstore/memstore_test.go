@@ -8,33 +8,33 @@ import (
 )
 
 func TestMemStoreLRU(t *testing.T) {
-	st, err := memstore.New(10)
+	st, err := memstore.NewCtx(10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	storetest.TestGCRAStore(t, st)
+	storetest.TestGCRAStoreCtx(t, st)
 }
 
 func TestMemStoreUnlimited(t *testing.T) {
-	st, err := memstore.New(10)
+	st, err := memstore.NewCtx(10)
 	if err != nil {
 		t.Fatal(err)
 	}
-	storetest.TestGCRAStore(t, st)
+	storetest.TestGCRAStoreCtx(t, st)
 }
 
 func BenchmarkMemStoreLRU(b *testing.B) {
-	st, err := memstore.New(10)
+	st, err := memstore.NewCtx(10)
 	if err != nil {
 		b.Fatal(err)
 	}
-	storetest.BenchmarkGCRAStore(b, st)
+	storetest.BenchmarkGCRAStoreCtx(b, st)
 }
 
 func BenchmarkMemStoreUnlimited(b *testing.B) {
-	st, err := memstore.New(0)
+	st, err := memstore.NewCtx(0)
 	if err != nil {
 		b.Fatal(err)
 	}
-	storetest.BenchmarkGCRAStore(b, st)
+	storetest.BenchmarkGCRAStoreCtx(b, st)
 }
