@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.7.2 - 2021-05-18
+* [#87](https://github.com/throttled/throttled/pull/87) Upgrade Redigo dependency to 1.8.4
+
 ## 2.7.1 - 2020-11-12
 * [#81](https://github.com/throttled/throttled/pull/81) Fix statistics calculation when quantity exceeds max burst
 
