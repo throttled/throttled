@@ -23,9 +23,16 @@ return 1
 `
 )
 
+// RedigoPool is the interface for retrieving a Redis connection from a Redigo
+// pool. This same interface is supported by the cluster client in
+// https://github.com/mna/redisc.
+type RedigoPool interface {
+	Get() redis.Conn
+}
+
 // RedigoStore implements a Redis-based store using redigo.
 type RedigoStore struct {
-	pool   *redis.Pool
+	pool   RedigoPool
 	prefix string
 	db     int
 }
@@ -36,7 +43,7 @@ type RedigoStore struct {
 // be selected to store the keys. Any updating operations will reset
 // the key TTL to the provided value rounded down to the nearest
 // second. Depends on Redis 2.6+ for EVAL support.
-func New(pool *redis.Pool, keyPrefix string, db int) (*RedigoStore, error) {
+func New(pool RedigoPool, keyPrefix string, db int) (*RedigoStore, error) {
 	return &RedigoStore{
 		pool:   pool,
 		prefix: keyPrefix,
