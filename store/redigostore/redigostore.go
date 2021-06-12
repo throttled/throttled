@@ -24,7 +24,8 @@ return 1
 )
 
 // RedigoPool is the interface for retrieving a Redis connection from a Redigo
-// pool. This same interface is supported by the cluster client in
+// pool. This is satisfied by the normal Redigo redis.Pool, but also works with
+// the Redis cluster connection pool provided by redisc.Cluster as part of
 // https://github.com/mna/redisc.
 type RedigoPool interface {
 	Get() redis.Conn
