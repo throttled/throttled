@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.8.0 - 2021-06-11
+* [#88](https://github.com/throttled/throttled/pull/88) Make `redigostore` compatible with `redisc.Cluster`
+
 ## 2.7.2 - 2021-05-18
 * [#87](https://github.com/throttled/throttled/pull/87) Upgrade Redigo dependency to 1.8.4
 
