@@ -65,7 +65,7 @@ func myHandlerFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	store, err := memstore.New(65536)
+	store, err := memstore.NewCtx(65536)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -74,12 +74,12 @@ func main() {
 		MaxRate:  throttled.PerMin(20),
 		MaxBurst: 5,
 	}
-	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	rateLimiter, err := throttled.NewGCRARateLimiterCtx(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	httpRateLimiter := throttled.HTTPRateLimiter{
+	httpRateLimiter := throttled.HTTPRateLimiterCtx{
 		RateLimiter: rateLimiter,
 		VaryBy:      &throttled.VaryBy{Path: true},
 	}
@@ -88,6 +88,16 @@ func main() {
 	http.ListenAndServe(":8080", httpRateLimiter.RateLimit(handler))
 }
 ```
+
+### Upgrading to `context.Context` aware version of `throttled`
+To upgrade to the new `context.Context` aware version of `throttled`, update the package to the latest version and replace the following function with their context-aware equivalent:
+- `memstore.New` => `memstore.NewCtx`
+- `goredisstore.New` => `goredisstore.NewCtx`
+- `redigostore.New` => `redigostore.NewCtx`
+- `throttled.NewGCRARateLimiter` => `throttled.NewGCRARateLimiterCtx`
+- `throttled.HTTPRateLimiter` => `throttled.HTTPRateLimiterCtx`
+
+Please note that not all stores make use of the passed `context.Context` yet.
 
 ## Related Projects
 

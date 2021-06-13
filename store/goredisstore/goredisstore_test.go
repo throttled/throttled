@@ -31,7 +31,7 @@ func ExampleNew() {
 	})
 
 	// Setup store
-	store, err := goredisstore.New(client, "throttled:")
+	store, err := goredisstore.NewCtx(client, "throttled:")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func ExampleNew() {
 	quota := throttled.RateQuota{MaxRate: throttled.PerMin(20), MaxBurst: 5}
 
 	// Then, use store and quota as arguments for NewGCRARateLimiter()
-	throttled.NewGCRARateLimiter(store, quota)
+	throttled.NewGCRARateLimiterCtx(store, quota)
 }
 
 func TestRedisStore(t *testing.T) {
@@ -49,8 +49,8 @@ func TestRedisStore(t *testing.T) {
 	defer clearRedis(c)
 
 	clearRedis(c)
-	storetest.TestGCRAStore(t, st)
-	storetest.TestGCRAStoreTTL(t, st)
+	storetest.TestGCRAStoreCtx(t, st)
+	storetest.TestGCRAStoreTTLCtx(t, st)
 }
 
 func BenchmarkRedisStore(b *testing.B) {
@@ -58,7 +58,7 @@ func BenchmarkRedisStore(b *testing.B) {
 	defer c.Close()
 	defer clearRedis(c)
 
-	storetest.BenchmarkGCRAStore(b, st)
+	storetest.BenchmarkGCRAStoreCtx(b, st)
 }
 
 func clearRedis(c *redis.Client) error {
@@ -70,7 +70,7 @@ func clearRedis(c *redis.Client) error {
 	return c.Del(keys...).Err()
 }
 
-func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, *goredisstore.GoRedisStore) {
+func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, throttled.GCRAStoreCtx) {
 	client := redis.NewClient(&redis.Options{
 		PoolSize:    10, // default
 		IdleTimeout: 30 * time.Second,
@@ -84,7 +84,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, *goredisstore.
 		tb.Skip("redis server not available on localhost port 6379")
 	}
 
-	st, err := goredisstore.New(client, redisTestPrefix)
+	st, err := goredisstore.NewCtx(client, redisTestPrefix)
 	if err != nil {
 		client.Close()
 		tb.Fatal(err)

@@ -1,6 +1,7 @@
 package throttled_test
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,7 @@ import (
 type stubLimiter struct {
 }
 
-func (sl *stubLimiter) RateLimit(key string, quantity int) (bool, throttled.RateLimitResult, error) {
+func (sl *stubLimiter) RateLimitCtx(_ context.Context, key string, quantity int) (bool, throttled.RateLimitResult, error) {
 	switch key {
 	case "limit":
 		result := throttled.RateLimitResult{
@@ -50,7 +51,7 @@ type httpTestCase struct {
 }
 
 func TestHTTPRateLimiter(t *testing.T) {
-	limiter := throttled.HTTPRateLimiter{
+	limiter := throttled.HTTPRateLimiterCtx{
 		RateLimiter: &stubLimiter{},
 		VaryBy:      &pathGetter{},
 	}
@@ -67,7 +68,7 @@ func TestHTTPRateLimiter(t *testing.T) {
 }
 
 func TestCustomHTTPRateLimiterHandlers(t *testing.T) {
-	limiter := throttled.HTTPRateLimiter{
+	limiter := throttled.HTTPRateLimiterCtx{
 		RateLimiter: &stubLimiter{},
 		VaryBy:      &pathGetter{},
 		DeniedHandler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -112,7 +113,7 @@ func runHTTPTestCases(t *testing.T, h http.Handler, cs []httpTestCase) {
 }
 
 func BenchmarkHTTPRateLimiter(b *testing.B) {
-	limiter := throttled.HTTPRateLimiter{
+	limiter := throttled.HTTPRateLimiterCtx{
 		RateLimiter: &stubLimiter{},
 		VaryBy:      &pathGetter{},
 	}

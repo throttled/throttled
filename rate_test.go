@@ -1,6 +1,7 @@
 package throttled_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -11,29 +12,29 @@ import (
 const deniedStatus = 429
 
 type testStore struct {
-	store throttled.GCRAStore
+	store throttled.GCRAStoreCtx
 
 	clock       time.Time
 	failUpdates bool
 }
 
-func (ts *testStore) GetWithTime(key string) (int64, time.Time, error) {
-	v, _, e := ts.store.GetWithTime(key)
+func (ts *testStore) GetWithTime(ctx context.Context, key string) (int64, time.Time, error) {
+	v, _, e := ts.store.GetWithTime(ctx, key)
 	return v, ts.clock, e
 }
 
-func (ts *testStore) SetIfNotExistsWithTTL(key string, value int64, ttl time.Duration) (bool, error) {
+func (ts *testStore) SetIfNotExistsWithTTL(ctx context.Context, key string, value int64, ttl time.Duration) (bool, error) {
 	if ts.failUpdates {
 		return false, nil
 	}
-	return ts.store.SetIfNotExistsWithTTL(key, value, ttl)
+	return ts.store.SetIfNotExistsWithTTL(ctx, key, value, ttl)
 }
 
-func (ts *testStore) CompareAndSwapWithTTL(key string, old, new int64, ttl time.Duration) (bool, error) {
+func (ts *testStore) CompareAndSwapWithTTL(ctx context.Context, key string, old, new int64, ttl time.Duration) (bool, error) {
 	if ts.failUpdates {
 		return false, nil
 	}
-	return ts.store.CompareAndSwapWithTTL(key, old, new, ttl)
+	return ts.store.CompareAndSwapWithTTL(ctx, key, old, new, ttl)
 }
 
 func TestRateLimit(t *testing.T) {
@@ -70,13 +71,13 @@ func TestRateLimit(t *testing.T) {
 		15: {start.Add(15000 * time.Millisecond), 6, 5, 0, -1, true},
 	}
 
-	mst, err := memstore.New(0)
+	mst, err := memstore.NewCtx(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := testStore{store: mst}
 
-	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	rl, err := throttled.NewGCRARateLimiterCtx(&st, rq)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +86,7 @@ func TestRateLimit(t *testing.T) {
 	for i, c := range cases {
 		st.clock = c.now
 
-		limited, context, err := rl.RateLimit("foo", c.volume)
+		limited, context, err := rl.RateLimitCtx(context.Background(), "foo", c.volume)
 		if err != nil {
 			t.Fatalf("%d: %#v", i, err)
 		}
@@ -115,19 +116,19 @@ func TestRateLimit(t *testing.T) {
 func TestRateLimitCustomPeriod(t *testing.T) {
 	period := 10 * time.Millisecond
 	rq := throttled.RateQuota{throttled.PerDuration(3, period), 0}
-	mst, err := memstore.New(27)
+	mst, err := memstore.NewCtx(27)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	st := testStore{store: mst}
-	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	rl, err := throttled.NewGCRARateLimiterCtx(&st, rq)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	for i := 0; i < 27; i++ {
-		limited, _, err := rl.RateLimit("bar", 1)
+		limited, _, err := rl.RateLimitCtx(context.Background(), "bar", 1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -144,17 +145,17 @@ func TestRateLimitCustomPeriod(t *testing.T) {
 
 func TestRateLimitUpdateFailures(t *testing.T) {
 	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: 1}
-	mst, err := memstore.New(0)
+	mst, err := memstore.NewCtx(0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	st := testStore{store: mst, failUpdates: true}
-	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	rl, err := throttled.NewGCRARateLimiterCtx(&st, rq)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if _, _, err := rl.RateLimit("foo", 1); err == nil {
+	if _, _, err := rl.RateLimitCtx(context.Background(), "foo", 1); err == nil {
 		t.Error("Expected limiting to fail when store updates fail")
 	}
 }
@@ -162,19 +163,19 @@ func TestRateLimitUpdateFailures(t *testing.T) {
 func BenchmarkRateLimit(b *testing.B) {
 	limit := 5
 	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1000), MaxBurst: limit - 1}
-	mst, err := memstore.New(0)
+	mst, err := memstore.NewCtx(0)
 	if err != nil {
 		b.Fatal(err)
 	}
 	st := testStore{store: mst}
 
-	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	rl, err := throttled.NewGCRARateLimiterCtx(&st, rq)
 	if err != nil {
 		b.Fatal(err)
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _, err = rl.RateLimit("foo", 1)
+		_, _, err = rl.RateLimitCtx(context.Background(), "foo", 1)
 	}
 	_ = err
 }

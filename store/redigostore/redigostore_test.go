@@ -1,6 +1,7 @@
 package redigostore_test
 
 import (
+	"github.com/throttled/throttled/v2"
 	"testing"
 	"time"
 
@@ -36,8 +37,8 @@ func TestRedisStore(t *testing.T) {
 	defer clearRedis(c)
 
 	clearRedis(c)
-	storetest.TestGCRAStore(t, st)
-	storetest.TestGCRAStoreTTL(t, st)
+	storetest.TestGCRAStoreCtx(t, st)
+	storetest.TestGCRAStoreTTLCtx(t, st)
 }
 
 func BenchmarkRedisStore(b *testing.B) {
@@ -45,7 +46,7 @@ func BenchmarkRedisStore(b *testing.B) {
 	defer c.Close()
 	defer clearRedis(c)
 
-	storetest.BenchmarkGCRAStore(b, st)
+	storetest.BenchmarkGCRAStoreCtx(b, st)
 }
 
 func clearRedis(c redis.Conn) error {
@@ -61,7 +62,7 @@ func clearRedis(c redis.Conn) error {
 	return nil
 }
 
-func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *redigostore.RedigoStore) {
+func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, throttled.GCRAStoreCtx) {
 	pool := getPool()
 	c := pool.Get()
 
@@ -75,7 +76,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, *redigostore.Redi
 		tb.Fatal(err)
 	}
 
-	st, err := redigostore.New(pool, redisTestPrefix, redisTestDB)
+	st, err := redigostore.NewCtx(pool, redisTestPrefix, redisTestDB)
 	if err != nil {
 		c.Close()
 		tb.Fatal(err)
