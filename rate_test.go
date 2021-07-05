@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/throttled/throttled/v2"
 	"github.com/throttled/throttled/v2/store/memstore"
 )
@@ -157,6 +158,27 @@ func TestRateLimitUpdateFailures(t *testing.T) {
 	if _, _, err := rl.RateLimit("foo", 1); err == nil {
 		t.Error("Expected limiting to fail when store updates fail")
 	}
+}
+
+func TestRateLimitUpdateFailuresWithRetryLimitSetToTwo(t *testing.T) {
+	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: 1}
+	mst, err := memstore.New(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := testStore{store: mst, failUpdates: true}
+	rl, err := throttled.NewGCRARateLimiter(&st, rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rl.SetMaxCASAttemptsLimit(2)
+
+	_, _, err = rl.RateLimit("foo", 1)
+	if err == nil {
+		t.Error("Expected limiting to fail when store updates fail")
+	}
+	assert.EqualError(t, err, "Failed to store updated rate limit data for key foo after 2 attempts")
 }
 
 func BenchmarkRateLimit(b *testing.B) {
