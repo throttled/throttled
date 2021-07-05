@@ -134,6 +134,10 @@ type GCRARateLimiter struct {
 	emissionInterval time.Duration
 
 	store GCRAStore
+
+	// Maximum number of times to retry SetIfNotExists/CompareAndSwap operations
+	// before returning an error.
+	maxCASAttemptsLimit int
 }
 
 // NewGCRARateLimiter creates a GCRARateLimiter. quota.Count defines
@@ -155,7 +159,14 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 		emissionInterval:        quota.MaxRate.period,
 		limit:                   quota.MaxBurst + 1,
 		store:                   st,
+		maxCASAttemptsLimit:     maxCASAttempts,
 	}, nil
+}
+
+// SetMaxCASAttemptsLimit allows you to set the maxCASAttempts limit. This is set to 10
+// be default.
+func (g *GCRARateLimiter) SetMaxCASAttemptsLimit(limit int) {
+	g.maxCASAttemptsLimit = limit
 }
 
 // RateLimit checks whether a particular key has exceeded a rate
@@ -227,7 +238,7 @@ func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitRe
 		}
 
 		i++
-		if i > maxCASAttempts {
+		if i >= g.maxCASAttemptsLimit {
 			return false, rlc, fmt.Errorf(
 				"Failed to store updated rate limit data for key %s after %d attempts",
 				key, i,
