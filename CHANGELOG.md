@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.9.0 - 2021-07-17
+* [#90](https://github.com/throttled/throttled/pull/90) Allow `maxCASAttempts` to be configurable
+
 ## 2.8.0 - 2021-06-11
 * [#88](https://github.com/throttled/throttled/pull/88) Make `redigostore` compatible with `redisc.Cluster`
 
