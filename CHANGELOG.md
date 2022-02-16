@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.9.1 - 2022-02-15
+* [`4739991`](https://github.com/throttled/throttled/commit/47399910777c4780f3f48a8a5aa305318d9798ae) Upgrade `golang.org/x/text` to 0.3.7 to address security vulnerability
+
 ## 2.9.0 - 2021-07-17
 * [#90](https://github.com/throttled/throttled/pull/90) Allow `maxCASAttempts` to be configurable
 
