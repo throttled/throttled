@@ -116,7 +116,7 @@ func PerDay(n int) Rate { return Rate{24 * time.Hour / time.Duration(n), n} }
 // PerDuration represents a number of requests per provided duration.
 func PerDuration(n int, d time.Duration) Rate { return Rate{d / time.Duration(n), n} }
 
-// GCRARateLimiter is a RateLimiter that users the generic cell-rate
+// GCRARateLimiter is a RateLimiter that uses the generic cell-rate
 // algorithm. The algorithm has been slightly modified from its usual
 // form to support limiting with an additional quantity parameter, such
 // as for limiting the number of bytes uploaded.
