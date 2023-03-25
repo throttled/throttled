@@ -1,6 +1,7 @@
 package throttled_test
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,11 +14,11 @@ var myHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("hi there!"))
 })
 
-// ExampleHTTPRateLimiter demonstrates the usage of HTTPRateLimiter
+// ExampleHTTPRateLimiter demonstrates the usage of HTTPRateLimiterCtx
 // for rate-limiting access to an http.Handler to 20 requests per path
 // per minute with a maximum burst of 5 requests.
-func ExampleHTTPRateLimiter() {
-	store, err := memstore.New(65536)
+func ExampleHTTPRateLimiterCtx() {
+	store, err := memstore.NewCtx(65536)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,12 +26,12 @@ func ExampleHTTPRateLimiter() {
 	// Maximum burst of 5 which refills at 20 tokens per minute.
 	quota := throttled.RateQuota{MaxRate: throttled.PerMin(20), MaxBurst: 5}
 
-	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	rateLimiter, err := throttled.NewGCRARateLimiterCtx(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	httpRateLimiter := throttled.HTTPRateLimiter{
+	httpRateLimiter := throttled.HTTPRateLimiterCtx{
 		RateLimiter: rateLimiter,
 		VaryBy:      &throttled.VaryBy{Path: true},
 	}
@@ -38,11 +39,11 @@ func ExampleHTTPRateLimiter() {
 	http.ListenAndServe(":8080", httpRateLimiter.RateLimit(myHandler))
 }
 
-// Demonstrates direct use of GCRARateLimiter's RateLimit function (and the
+// Demonstrates direct use of GCRARateLimiterCtx's RateLimit function (and the
 // more general RateLimiter interface). This should be used anywhere where
 // granular control over rate limiting is required.
-func ExampleGCRARateLimiter() {
-	store, err := memstore.New(65536)
+func ExampleGCRARateLimiterCtx() {
+	store, err := memstore.NewCtx(65536)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,7 +51,7 @@ func ExampleGCRARateLimiter() {
 	// Maximum burst of 5 which refills at 1 token per hour.
 	quota := throttled.RateQuota{MaxRate: throttled.PerHour(1), MaxBurst: 5}
 
-	rateLimiter, err := throttled.NewGCRARateLimiter(store, quota)
+	rateLimiter, err := throttled.NewGCRARateLimiterCtx(store, quota)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -65,7 +66,7 @@ func ExampleGCRARateLimiter() {
 	for i := 0; i < 20; i++ {
 		bucket := fmt.Sprintf("by-order:%v", i/10)
 
-		limited, result, err := rateLimiter.RateLimit(bucket, 1)
+		limited, result, err := rateLimiter.RateLimitCtx(context.Background(), bucket, 1)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -1,6 +1,7 @@
 package throttled
 
 import (
+	"context"
 	"fmt"
 	"time"
 )
@@ -11,9 +12,9 @@ const (
 	maxCASAttempts = 10
 )
 
-// A RateLimiter manages limiting the rate of actions by key.
-type RateLimiter interface {
-	// RateLimit checks whether a particular key has exceeded a rate
+// A RateLimiterCtx manages limiting the rate of actions by key.
+type RateLimiterCtx interface {
+	// RateLimitCtx checks whether a particular key has exceeded a rate
 	// limit. It also returns a RateLimitResult to provide additional
 	// information about the state of the RateLimiter.
 	//
@@ -23,7 +24,7 @@ type RateLimiter interface {
 	// quantity could rate limit based on the size of a file upload in
 	// megabytes. If quantity is 0, no update is performed allowing
 	// you to "peek" at the state of the RateLimiter for a given key.
-	RateLimit(key string, quantity int) (bool, RateLimitResult, error)
+	RateLimitCtx(ctx context.Context, key string, quantity int) (bool, RateLimitResult, error)
 }
 
 // RateLimitResult represents the state of the RateLimiter for a
@@ -116,11 +117,11 @@ func PerDay(n int) Rate { return Rate{24 * time.Hour / time.Duration(n), n} }
 // PerDuration represents a number of requests per provided duration.
 func PerDuration(n int, d time.Duration) Rate { return Rate{d / time.Duration(n), n} }
 
-// GCRARateLimiter is a RateLimiter that uses the generic cell-rate
+// GCRARateLimiterCtx is a RateLimiter that uses the generic cell-rate
 // algorithm. The algorithm has been slightly modified from its usual
 // form to support limiting with an additional quantity parameter, such
 // as for limiting the number of bytes uploaded.
-type GCRARateLimiter struct {
+type GCRARateLimiterCtx struct {
 	limit int
 
 	// Think of the DVT as our flexibility:
@@ -133,20 +134,20 @@ type GCRARateLimiter struct {
 	// think of it as how frequently the bucket leaks one unit.
 	emissionInterval time.Duration
 
-	store GCRAStore
+	store GCRAStoreCtx
 
 	// Maximum number of times to retry SetIfNotExists/CompareAndSwap operations
 	// before returning an error.
 	maxCASAttemptsLimit int
 }
 
-// NewGCRARateLimiter creates a GCRARateLimiter. quota.Count defines
+// NewGCRARateLimiterCtx creates a GCRARateLimiterCtx. quota.Count defines
 // the maximum number of requests permitted in an instantaneous burst
 // and quota.Count / quota.Period defines the maximum sustained
 // rate. For example, PerMin(60) permits 60 requests instantly per key
 // followed by one request per second indefinitely whereas PerSec(1)
 // only permits one request per second with no tolerance for bursts.
-func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error) {
+func NewGCRARateLimiterCtx(st GCRAStoreCtx, quota RateQuota) (*GCRARateLimiterCtx, error) {
 	if quota.MaxBurst < 0 {
 		return nil, fmt.Errorf("invalid RateQuota %#v; MaxBurst must be greater than zero", quota)
 	}
@@ -154,7 +155,7 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 		return nil, fmt.Errorf("invalid RateQuota %#v; MaxRate must be greater than zero", quota)
 	}
 
-	return &GCRARateLimiter{
+	return &GCRARateLimiterCtx{
 		delayVariationTolerance: quota.MaxRate.period * (time.Duration(quota.MaxBurst) + 1),
 		emissionInterval:        quota.MaxRate.period,
 		limit:                   quota.MaxBurst + 1,
@@ -165,11 +166,11 @@ func NewGCRARateLimiter(st GCRAStore, quota RateQuota) (*GCRARateLimiter, error)
 
 // SetMaxCASAttemptsLimit allows you to set the maxCASAttempts limit. This is set to 10
 // be default.
-func (g *GCRARateLimiter) SetMaxCASAttemptsLimit(limit int) {
+func (g *GCRARateLimiterCtx) SetMaxCASAttemptsLimit(limit int) {
 	g.maxCASAttemptsLimit = limit
 }
 
-// RateLimit checks whether a particular key has exceeded a rate
+// RateLimitCtx checks whether a particular key has exceeded a rate
 // limit. It also returns a RateLimitResult to provide additional
 // information about the state of the RateLimiter.
 //
@@ -179,7 +180,7 @@ func (g *GCRARateLimiter) SetMaxCASAttemptsLimit(limit int) {
 // quantity could rate limit based on the size of a file upload in
 // megabytes. If quantity is 0, no update is performed allowing you
 // to "peek" at the state of the RateLimiter for a given key.
-func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitResult, error) {
+func (g *GCRARateLimiterCtx) RateLimitCtx(ctx context.Context, key string, quantity int) (bool, RateLimitResult, error) {
 	var tat, newTat, now time.Time
 	var ttl time.Duration
 	rlc := RateLimitResult{Limit: g.limit, RetryAfter: -1}
@@ -193,7 +194,7 @@ func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitRe
 
 		// tat refers to the theoretical arrival time that would be expected
 		// from equally spaced requests at exactly the rate limit.
-		tatVal, now, err = g.store.GetWithTime(key)
+		tatVal, now, err = g.store.GetWithTime(ctx, key)
 		if err != nil {
 			return false, rlc, err
 		}
@@ -225,9 +226,9 @@ func (g *GCRARateLimiter) RateLimit(key string, quantity int) (bool, RateLimitRe
 		ttl = newTat.Sub(now)
 
 		if tatVal == -1 {
-			updated, err = g.store.SetIfNotExistsWithTTL(key, newTat.UnixNano(), ttl)
+			updated, err = g.store.SetIfNotExistsWithTTL(ctx, key, newTat.UnixNano(), ttl)
 		} else {
-			updated, err = g.store.CompareAndSwapWithTTL(key, tatVal, newTat.UnixNano(), ttl)
+			updated, err = g.store.CompareAndSwapWithTTL(ctx, key, tatVal, newTat.UnixNano(), ttl)
 		}
 
 		if err != nil {
