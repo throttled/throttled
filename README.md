@@ -90,7 +90,11 @@ func main() {
 ```
 
 ### Upgrading to `context.Context` aware version of `throttled`
-To upgrade to the new `context.Context` aware version of `throttled`, update the package to the latest version and replace the following function with their context-aware equivalent:
+
+To upgrade to the new `context.Context` aware version of `throttled`, update
+the package to the latest version and replace the following function with their
+context-aware equivalent:
+
 - `memstore.New` => `memstore.NewCtx`
 - `goredisstore.New` => `goredisstore.NewCtx`
 - `redigostore.New` => `redigostore.NewCtx`
