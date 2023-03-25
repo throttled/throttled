@@ -15,13 +15,14 @@ jobs:
     strategy:
       matrix:
         go:
-          - 1.13
-          - 1.14
-          - 1.15
-          - 1.16
-          - 1.17
-          - 1.18
-          - 1.19
+          - "1.13"
+          - "1.14"
+          - "1.15"
+          - "1.16"
+          - "1.17"
+          - "1.18"
+          - "1.19"
+          - "1.20"
 
     steps:
       - name: Install Go
@@ -30,7 +31,7 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Debug
         run: |
@@ -53,9 +54,6 @@ jobs:
         run: |
           go test -coverprofile=throttled.coverage.out .
           go test -coverprofile=store.coverage.out ./store
-
-      - name: "Go: Vet"
-        run: go vet ./...
 
       - name: "Check: Gofmt"
         run: scripts/check_gofmt.sh
