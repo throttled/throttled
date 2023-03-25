@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.10.0 - 2023-03-25
+* [#83](https://github.com/throttled/throttled/pull/83) Introduce `context.Context` in function signatures
+
 ## 2.9.1 - 2022-02-15
 * [`4739991`](https://github.com/throttled/throttled/commit/47399910777c4780f3f48a8a5aa305318d9798ae) Upgrade `golang.org/x/text` to 0.3.7 to address security vulnerability
 
