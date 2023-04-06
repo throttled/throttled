@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.11.0 - 2023-04-06
+* [#84](https://github.com/throttled/throttled/pull/84) Add store for `redis-go` v8
+
 ## 2.10.0 - 2023-03-25
 * [#83](https://github.com/throttled/throttled/pull/83) Introduce `context.Context` in function signatures
 
