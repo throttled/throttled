@@ -8,6 +8,7 @@ require (
 	github.com/gomodule/redigo v1.8.9
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kr/pretty v0.1.0 // indirect
+	github.com/redis/go-redis/v9 v9.0.5
 	github.com/stretchr/testify v1.7.0
 	golang.org/x/text v0.3.8 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
