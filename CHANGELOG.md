@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.12.0 - 2023-06-29
+* [#103](https://github.com/throttled/throttled/pull/103) Add store for `redis-go` v9
+* [#104](https://github.com/throttled/throttled/pull/104) Drop Go versions 1.13, 1.14, 1.15, 1.16, and 1.17 from build matrix
+
 ## 2.11.0 - 2023-04-06
 * [#84](https://github.com/throttled/throttled/pull/84) Add store for `redis-go` v8
 
