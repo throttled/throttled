@@ -54,7 +54,7 @@ func New(pool RedigoPool, keyPrefix string, db int) (*RedigoStore, error) {
 }
 
 // NewCtx is the version of New that can be used with a context-aware ratelimiter.
-func NewCtx(pool *redis.Pool, keyPrefix string, db int) (throttled.GCRAStoreCtx, error) {
+func NewCtx(pool RedigoPool, keyPrefix string, db int) (throttled.GCRAStoreCtx, error) {
 	st, err := New(pool, keyPrefix, db)
 	return throttled.WrapStoreWithContext(st), err
 }
