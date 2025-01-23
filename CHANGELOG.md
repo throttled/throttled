@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+## 2.13.0 - 2025-01-23
+* [#106](https://github.com/throttled/throttled/pull/106) Use the `RedigoPool` interface in `redigostore.NewCtx`
+
 ## 2.12.0 - 2023-06-29
 * [#103](https://github.com/throttled/throttled/pull/103) Add store for `redis-go` v9
 * [#104](https://github.com/throttled/throttled/pull/104) Drop Go versions 1.13, 1.14, 1.15, 1.16, and 1.17 from build matrix
