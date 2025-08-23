@@ -15,9 +15,10 @@ jobs:
     strategy:
       matrix:
         go:
-          - "1.18"
-          - "1.19"
-          - "1.20"
+          - "1.18" # minimum allowed bound from go.mod
+          - "1.23"
+          - "1.24"
+          - "1.25"
 
     steps:
       - name: Install Go
