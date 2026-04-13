@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- [#115](https://github.com/throttled/throttled/pull/115) Prevent panic on unset rate limiter
 
 ## 2.15.0 - 2025-08-23
 * [#108](https://github.com/throttled/throttled/pull/108) Return `RetryAfter` when peeking
