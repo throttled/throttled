@@ -53,6 +53,7 @@ func (t *HTTPRateLimiterCtx) RateLimit(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if t.RateLimiter == nil {
 			t.error(w, r, errors.New("You must set a RateLimiter on HTTPRateLimiter"))
+			return
 		}
 
 		var k string
