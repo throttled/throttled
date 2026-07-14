@@ -1,9 +1,10 @@
 package redigostore_test
 
 import (
-	"github.com/throttled/throttled/v2"
 	"testing"
 	"time"
+
+	"github.com/throttled/throttled/v2"
 
 	"github.com/gomodule/redigo/redis"
 
@@ -66,7 +67,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (redis.Conn, throttled.GCRASto
 	pool := getPool()
 	c := pool.Get()
 
-	if _, err := redis.String(c.Do("PING")); err != nil {
+	if p, _ := redis.String(c.Do("PING")); p != "PONG" {
 		c.Close()
 		tb.Skip("redis server not available on localhost port 6379")
 	}

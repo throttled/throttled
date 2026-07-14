@@ -79,7 +79,7 @@ func setupRedis(tb testing.TB, ttl time.Duration) (*redis.Client, throttled.GCRA
 		DB:          redisTestDB, // use default DB
 	})
 
-	if err := client.Ping().Err(); err != nil {
+	if p := client.Ping().Val(); p != "PONG" {
 		client.Close()
 		tb.Skip("redis server not available on localhost port 6379")
 	}
