@@ -35,7 +35,7 @@ type GoRedisStore struct {
 // may be an empty string, and the database index specified by db will
 // be selected to store the keys. Any updating operations will reset
 // the key TTL to the provided value rounded down to the nearest
-// second. Depends on Redis 2.6+ for EVAL support.
+// second. Requires Redis 2.6.12+ for SET with expiration and NX support.
 func NewCtx(client redis.UniversalClient, keyPrefix string) (*GoRedisStore, error) {
 	return &GoRedisStore{
 		client: client,
@@ -71,25 +71,16 @@ func (r *GoRedisStore) GetWithTime(ctx context.Context, key string) (int64, time
 
 // SetIfNotExistsWithTTL sets the value of key only if it is not
 // already set in the store it returns whether a new value was set.
-// If a new value was set, the ttl in the key is also set, though this
-// operation is not performed atomically.
+// If a new value is set, its TTL is set atomically.
 func (r *GoRedisStore) SetIfNotExistsWithTTL(ctx context.Context, key string, value int64, ttl time.Duration) (bool, error) {
 	key = r.prefix + key
 
-	updated, err := r.client.SetNX(ctx, key, value, 0).Result()
-	if err != nil {
-		return false, err
-	}
-
-	// An `EXPIRE 0` will delete the key immediately, so make sure that we set
-	// expiry for a minimum of one second out so that our results stay in the
-	// store.
+	// Make sure the key expires at least one second after creation.
 	if ttl < 1*time.Second {
 		ttl = 1 * time.Second
 	}
 
-	err = r.client.Expire(ctx, key, ttl).Err()
-	return updated, err
+	return r.client.SetNX(ctx, key, value, ttl.Truncate(time.Second)).Result()
 }
 
 // CompareAndSwapWithTTL atomically compares the value at key to the
