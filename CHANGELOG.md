@@ -1,6 +1,9 @@
 # Changelog
 
 ## Unreleased
+
+## 2.15.1 - 2026-11-11
+- [#112](https://github.com/throttled/throttled/pull/112) Update `gopkg.in/yaml.v3` to 3.0.1
 - [#115](https://github.com/throttled/throttled/pull/115) Prevent panic on unset rate limiter
 - [#117](https://github.com/throttled/throttled/pull/117) Make key creation and expiry atomic in the go-redis v9 store, preserving existing keys' TTLs (requires Redis 2.6.12+)
 
