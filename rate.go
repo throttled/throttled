@@ -268,6 +268,9 @@ func (g *GCRARateLimiterCtx) RateLimitCtx(ctx context.Context, key string, quant
 	if next > -g.emissionInterval {
 		rlc.Remaining = int(next / g.emissionInterval)
 	}
+	if rlc.Remaining > g.limit {
+		rlc.Remaining = g.limit
+	}
 	rlc.ResetAfter = ttl
 
 	return limited, rlc, nil
