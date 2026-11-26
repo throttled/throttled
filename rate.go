@@ -208,11 +208,13 @@ func (g *GCRARateLimiterCtx) RateLimitCtx(ctx context.Context, key string, quant
 		origQuantity := quantity
 
 		// When called with quantity 0 we simulate a call with quantity=1 to calculate a RetryAfter.
+		// Keep that on a local so a failed compare-and-swap retries the peek, not a stored request.
+		calcQuantity := quantity
 		if origQuantity == 0 {
-			quantity = 1
+			calcQuantity = 1
 		}
 
-		increment := time.Duration(quantity) * g.emissionInterval
+		increment := time.Duration(calcQuantity) * g.emissionInterval
 		if now.After(tat) {
 			newTat = now.Add(increment)
 		} else {
