@@ -38,6 +38,33 @@ func (ts *testStore) CompareAndSwapWithTTL(ctx context.Context, key string, old,
 	return ts.store.CompareAndSwapWithTTL(ctx, key, old, new, ttl)
 }
 
+// raceStore runs onGet once, after the next GetWithTime has taken its snapshot
+// and before that caller can swap. That is the window a concurrent request
+// uses to win the compare-and-swap.
+type raceStore struct {
+	store throttled.GCRAStoreCtx
+	clock time.Time
+	onGet func()
+}
+
+func (s *raceStore) GetWithTime(ctx context.Context, key string) (int64, time.Time, error) {
+	v, _, err := s.store.GetWithTime(ctx, key)
+	if s.onGet != nil {
+		fn := s.onGet
+		s.onGet = nil
+		fn()
+	}
+	return v, s.clock, err
+}
+
+func (s *raceStore) SetIfNotExistsWithTTL(ctx context.Context, key string, value int64, ttl time.Duration) (bool, error) {
+	return s.store.SetIfNotExistsWithTTL(ctx, key, value, ttl)
+}
+
+func (s *raceStore) CompareAndSwapWithTTL(ctx context.Context, key string, old, new int64, ttl time.Duration) (bool, error) {
+	return s.store.CompareAndSwapWithTTL(ctx, key, old, new, ttl)
+}
+
 func TestRateLimit(t *testing.T) {
 	limit := 5
 	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: limit - 1}
@@ -238,6 +265,106 @@ func TestRateLimitPeekReturnsRetryAfter(t *testing.T) {
 	}
 	if result.RetryAfter != limitedRetryAfter {
 		t.Errorf("expected RetryAfter for peeking to be the same as before but got %s", result.RetryAfter)
+	}
+}
+
+func TestRateLimitPeekLostCASDoesNotConsume(t *testing.T) {
+	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: 2}
+	mst, err := memstore.NewCtx(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := &raceStore{store: mst, clock: time.Unix(0, 0)}
+	rl, err := throttled.NewGCRARateLimiterCtx(st, rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	limited, _, err := rl.RateLimitCtx(ctx, "foo", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if limited {
+		t.Fatal("first request should be allowed")
+	}
+
+	raced := false
+	st.onGet = func() {
+		raced = true
+		limited, _, err := rl.RateLimitCtx(ctx, "foo", 1)
+		if err != nil {
+			t.Errorf("racing request: %v", err)
+		}
+		if limited {
+			t.Error("racing request should be allowed")
+		}
+	}
+
+	limited, _, err = rl.RateLimitCtx(ctx, "foo", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !raced {
+		t.Fatal("peek did not observe a concurrent update")
+	}
+	if limited {
+		t.Error("peek should not be limited")
+	}
+
+	limited, _, err = rl.RateLimitCtx(ctx, "foo", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if limited {
+		t.Error("peek that lost a compare-and-swap consumed a request")
+	}
+}
+
+func TestRateLimitPeekLostCreateDoesNotConsume(t *testing.T) {
+	rq := throttled.RateQuota{MaxRate: throttled.PerSec(1), MaxBurst: 2}
+	mst, err := memstore.NewCtx(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st := &raceStore{store: mst, clock: time.Unix(0, 0)}
+	rl, err := throttled.NewGCRARateLimiterCtx(st, rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+	raced := false
+	st.onGet = func() {
+		raced = true
+		limited, _, err := rl.RateLimitCtx(ctx, "foo", 1)
+		if err != nil {
+			t.Errorf("racing request: %v", err)
+		}
+		if limited {
+			t.Error("racing request should be allowed")
+		}
+	}
+
+	limited, _, err := rl.RateLimitCtx(ctx, "foo", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !raced {
+		t.Fatal("peek did not observe a concurrent create")
+	}
+	if limited {
+		t.Error("peek should not be limited")
+	}
+
+	for i := 0; i < 2; i++ {
+		limited, _, err = rl.RateLimitCtx(ctx, "foo", 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if limited {
+			t.Fatalf("request %d after a raced peek was limited", i+1)
+		}
 	}
 }
 
